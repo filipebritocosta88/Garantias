@@ -1,33 +1,35 @@
 /**
- * SISTEMA DE TRIAGEM PROFISSIONAL - ARQUITETURA ROBUSTA
+ * LÓGICA DE NEGÓCIO - SISTEMA DE TRIAGEM
+ * Mantendo persistência via LocalStorage e exportação formatada ExcelJS
  */
 
 let productDatabase = JSON.parse(localStorage.getItem('metas_db')) || {};
 let itemsPool = JSON.parse(localStorage.getItem('metas_pool')) || [];
 let exportVault = JSON.parse(localStorage.getItem('metas_vault')) || [];
 
-// Inicialização
 document.addEventListener('DOMContentLoaded', () => {
     updateRecentTable();
     updateFullTable();
     updateVault();
     if(Object.keys(productDatabase).length > 0) {
-        document.getElementById('dbStatus').innerText = "✅ Banco de Dados Ativo";
+        document.getElementById('dbStatus').innerText = "✅ Banco de Dados Carregado";
     }
 });
 
-// 1. Controle de Navegação
 function switchTab(tabId) {
     document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
     document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
     document.getElementById(tabId).classList.add('active');
-    event.currentTarget.classList.add('active');
+    
+    // Identifica o botão clicado para ativar
+    const btn = Array.from(document.querySelectorAll('.nav-btn')).find(b => b.getAttribute('onclick').includes(tabId));
+    if(btn) btn.classList.add('active');
     
     if(tabId === 'historico') updateFullTable();
     if(tabId === 'arquivados') updateVault();
 }
 
-// 2. Processamento do Banco de Dados (CSV)
+// Banco de Dados
 document.getElementById('csvFile').addEventListener('change', function(e) {
     const file = e.target.files[0];
     if(!file) return;
@@ -43,7 +45,6 @@ document.getElementById('csvFile').addEventListener('change', function(e) {
             });
             localStorage.setItem('metas_db', JSON.stringify(productDatabase));
             document.getElementById('dbStatus').innerText = "✅ Banco Atualizado (" + Object.keys(productDatabase).length + " itens)";
-            alert("Banco de dados processado com sucesso!");
         }
     });
 });
@@ -51,10 +52,10 @@ document.getElementById('csvFile').addEventListener('change', function(e) {
 function previewProduct() {
     const id = document.getElementById('productId').value.trim();
     const preview = document.getElementById('productNamePreview');
-    preview.innerText = productDatabase[id] || (id ? "❌ Não encontrado" : "");
+    preview.innerText = productDatabase[id] || (id ? "❌ Não cadastrado" : "");
 }
 
-// 3. Lógica de Triagem
+// Triagem
 function addItem() {
     const id = document.getElementById('productId').value.trim();
     const barcode = document.getElementById('barcode').value.trim();
@@ -62,34 +63,28 @@ function addItem() {
     const date = document.getElementById('purchaseDate').value;
     const reason = document.getElementById('reason').value;
 
-    if(!id || !barcode || !date) return alert("Por favor, preencha todos os campos e bipe o código.");
+    if(!id || !barcode || !date) return alert("Erro: Campos ID, Barcode ou Data vazios.");
 
-    const productName = productDatabase[id] || "PRODUTO DESCONHECIDO";
-    const analysis = runEngine(productName, supplier, date, reason);
+    const productName = productDatabase[id] || "PRODUTO NÃO IDENTIFICADO";
+    const statusResult = engineValidation(productName, supplier, date, reason);
 
     const entry = {
         uid: Date.now(),
-        id,
-        productName,
-        barcode,
-        supplier,
-        date,
-        reason,
-        status: analysis.status,
-        justification: analysis.justification
+        id, productName, barcode, supplier, date, reason,
+        status: statusResult.status,
+        justification: statusResult.justification
     };
 
     itemsPool.push(entry);
-    savePool();
-    updateRecentTable();
+    localStorage.setItem('metas_pool', JSON.stringify(itemsPool));
     
-    // Reset campos rápidos
+    updateRecentTable();
     document.getElementById('productId').value = '';
     document.getElementById('barcode').value = '';
     document.getElementById('productNamePreview').innerText = '';
 }
 
-function runEngine(name, supplier, date, reason) {
+function engineValidation(name, supplier, date, reason) {
     const purchaseDate = new Date(date);
     const today = new Date();
     const diffMonths = (today - purchaseDate) / (1000 * 60 * 60 * 24 * 30.44);
@@ -101,32 +96,12 @@ function runEngine(name, supplier, date, reason) {
     const limit = isBattery ? 6 : 12;
 
     if (diffMonths > limit) {
-        return { status: 'Descarte', justification: `Prazo excedido (${Math.floor(diffMonths)} meses)` };
+        return { status: 'Descarte', justification: `Excedeu ${limit} meses` };
     }
-
-    return { status: 'Garantia', justification: 'OK' };
+    return { status: 'Garantia', justification: 'Dentro das normas' };
 }
 
-// 4. Gerenciamento de Dados
-function savePool() { localStorage.setItem('metas_pool', JSON.stringify(itemsPool)); }
-
-function deleteItem(uid) {
-    itemsPool = itemsPool.filter(i => i.uid !== uid);
-    savePool();
-    updateFullTable();
-}
-
-function editItem(uid) {
-    const item = itemsPool.find(i => i.uid === uid);
-    const newBarcode = prompt("Novo Código de Barras:", item.barcode);
-    if(newBarcode) {
-        item.barcode = newBarcode;
-        savePool();
-        updateFullTable();
-    }
-}
-
-// 5. Tabelas
+// Tabelas e UI
 function updateRecentTable() {
     const body = document.getElementById('recentBody');
     body.innerHTML = itemsPool.slice(-10).reverse().map(item => `
@@ -134,7 +109,6 @@ function updateRecentTable() {
             <td>${item.supplier}</td>
             <td><strong>${item.productName}</strong></td>
             <td><span class="badge ${item.status === 'Garantia' ? 'badge-garantia' : 'badge-descarte'}">${item.status}</span></td>
-            <td>${item.reason}</td>
         </tr>
     `).join('');
 }
@@ -144,119 +118,112 @@ function updateFullTable() {
     body.innerHTML = itemsPool.slice().reverse().map(item => `
         <tr>
             <td>${item.supplier}</td>
-            <td>${item.id}</td>
-            <td>${item.productName}</td>
+            <td><strong>${item.productName}</strong><br><small>${item.id}</small></td>
             <td><code>${item.barcode}</code></td>
             <td><span class="badge ${item.status === 'Garantia' ? 'badge-garantia' : 'badge-descarte'}">${item.status}</span></td>
             <td>
-                <button class="btn" style="background:#f1f5f9" onclick="editItem(${item.uid})">✏️</button>
-                <button class="btn btn-danger" onclick="deleteItem(${item.uid})">🗑️</button>
+                <button class="btn" onclick="editItem(${item.uid})">✏️</button>
+                <button class="btn" style="color:red" onclick="deleteItem(${item.uid})">🗑️</button>
             </td>
         </tr>
     `).join('');
 }
 
-// 6. EXPORTAÇÃO PREMIUM (ExcelJS)
-async function exportData(type) {
-    const selectedSupplier = document.getElementById('filterSupplier').value;
-    const toExport = itemsPool.filter(i => i.status === type && i.supplier === selectedSupplier);
+function deleteItem(uid) {
+    itemsPool = itemsPool.filter(i => i.uid !== uid);
+    localStorage.setItem('metas_pool', JSON.stringify(itemsPool));
+    updateFullTable();
+}
 
-    if(toExport.length === 0) return alert("Nada encontrado para este fornecedor nesta categoria.");
-
-    const workbook = new ExcelJS.Workbook();
-    const worksheet = workbook.addWorksheet(type);
-
-    // Configuração de Colunas
-    worksheet.columns = [
-        { header: 'FORNECEDOR', key: 'supplier', width: 15 },
-        { header: 'ID', key: 'id', width: 10 },
-        { header: 'PRODUTO', key: 'productName', width: 40 },
-        { header: 'CÓD. BARRAS', key: 'barcode', width: 20 },
-        { header: 'DATA COMPRA', key: 'date', width: 15 },
-        { header: 'MOTIVO', key: 'reason', width: 25 },
-        { header: 'JUSTIFICATIVA', key: 'justification', width: 30 }
-    ];
-
-    // Estilo do Cabeçalho (O que a diretoria quer ver)
-    const headerRow = worksheet.getRow(1);
-    headerRow.eachCell((cell) => {
-        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: '1E293B' } };
-        cell.font = { color: { argb: 'FFFFFF' }, bold: true, size: 12 };
-        cell.alignment = { vertical: 'middle', horizontal: 'center' };
-        cell.border = { top: {style:'thin'}, left: {style:'thin'}, bottom: {style:'thin'}, right: {style:'thin'} };
-    });
-
-    // Adicionar Dados e Bordas
-    toExport.forEach(item => {
-        const row = worksheet.addRow(item);
-        row.eachCell(cell => {
-            cell.border = { top: {style:'thin'}, left: {style:'thin'}, bottom: {style:'thin'}, right: {style:'thin'} };
-        });
-    });
-
-    // Salvar no Cofre antes de baixar
-    const filename = `Relatorio_${type.toUpperCase()}_${selectedSupplier}_${new Date().toLocaleDateString('pt-BR').replace(/\//g, '-')}.xlsx`;
-    
-    // Gerar Buffer e Download
-    const buffer = await workbook.xlsx.writeBuffer();
-    saveAs(new Blob([buffer]), filename);
-
-    // Registrar no Cofre
-    const vaultEntry = {
-        date: new Date().toLocaleString(),
-        filename,
-        supplier: selectedSupplier,
-        type: type,
-        count: toExport.length,
-        data: toExport
-    };
-    exportVault.push(vaultEntry);
-    localStorage.setItem('metas_vault', JSON.stringify(exportVault));
-
-    // Limpar do pool (opcional - você decide se quer limpar após exportar)
-    if(confirm("Deseja remover estes itens do lote em aberto?")) {
-        itemsPool = itemsPool.filter(i => !(i.status === type && i.supplier === selectedSupplier));
-        savePool();
+function editItem(uid) {
+    const item = itemsPool.find(i => i.uid === uid);
+    const newBar = prompt("Corrigir Barcode:", item.barcode);
+    if(newBar) {
+        item.barcode = newBar;
+        localStorage.setItem('metas_pool', JSON.stringify(itemsPool));
         updateFullTable();
     }
 }
 
+// Exportação Excel Premium
+async function exportData(type) {
+    const selSupplier = document.getElementById('filterSupplier').value;
+    const data = itemsPool.filter(i => i.status === type && i.supplier === selSupplier);
+
+    if(data.length === 0) return alert("Nenhum item encontrado.");
+
+    const workbook = new ExcelJS.Workbook();
+    const worksheet = workbook.addWorksheet(type);
+
+    worksheet.columns = [
+        { header: 'FORNECEDOR', key: 'supplier', width: 15 },
+        { header: 'ID', key: 'id', width: 10 },
+        { header: 'PRODUTO', key: 'productName', width: 45 },
+        { header: 'BARRAS', key: 'barcode', width: 20 },
+        { header: 'DATA', key: 'date', width: 12 },
+        { header: 'MOTIVO', key: 'reason', width: 20 },
+        { header: 'STATUS', key: 'justification', width: 25 }
+    ];
+
+    // Estilização do Título/Cabeçalho
+    const headerRow = worksheet.getRow(1);
+    headerRow.eachCell(cell => {
+        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: '1E293B' } };
+        cell.font = { color: { argb: 'FFFFFF' }, bold: true };
+        cell.alignment = { horizontal: 'center' };
+    });
+
+    data.forEach(item => worksheet.addRow(item));
+
+    const filename = `RELATORIO_${type.toUpperCase()}_${selSupplier}.xlsx`;
+    const buffer = await workbook.xlsx.writeBuffer();
+    saveAs(new Blob([buffer]), filename);
+
+    // Salvar no Cofre
+    exportVault.push({
+        id: Date.now(),
+        filename,
+        timestamp: new Date().toLocaleString(),
+        content: data,
+        type: type
+    });
+    localStorage.setItem('metas_vault', JSON.stringify(exportVault));
+    
+    if(confirm("Deseja remover estes itens da lista de pendentes?")) {
+        itemsPool = itemsPool.filter(i => !(i.status === type && i.supplier === selSupplier));
+        localStorage.setItem('metas_pool', JSON.stringify(itemsPool));
+        updateFullTable();
+    }
+    updateVault();
+}
+
 function updateVault() {
     const list = document.getElementById('vaultList');
-    list.innerHTML = exportVault.slice().reverse().map((exp, index) => `
-        <div class="export-item">
-            <div>
-                <strong>${exp.filename}</strong><br>
-                <small>${exp.date} | ${exp.count} itens</small>
-            </div>
-            <button class="btn btn-success" onclick="reDownload(${exportVault.length - 1 - index})">Re-baixar</button>
+    list.innerHTML = exportVault.slice().reverse().map(v => `
+        <div class="vault-item">
+            <div><strong>${v.filename}</strong><br><small>${v.timestamp}</small></div>
+            <button class="btn btn-success" onclick="downloadAgain(${v.id})">Baixar Novamente</button>
         </div>
     `).join('');
 }
 
-async function reDownload(index) {
-    const exp = exportVault[index];
-    // Aqui recriamos o Excel a partir dos dados salvos no vault
-    // Por simplicidade de código, chamamos a lógica de exportação novamente com os dados do vault
+async function downloadAgain(id) {
+    const v = exportVault.find(x => x.id === id);
     const workbook = new ExcelJS.Workbook();
-    const worksheet = workbook.addWorksheet(exp.type);
+    const worksheet = workbook.addWorksheet('Re-export');
     worksheet.columns = [
         { header: 'FORNECEDOR', key: 'supplier', width: 15 },
         { header: 'ID', key: 'id', width: 10 },
-        { header: 'PRODUTO', key: 'productName', width: 40 },
-        { header: 'CÓD. BARRAS', key: 'barcode', width: 20 },
-        { header: 'DATA COMPRA', key: 'date', width: 15 },
-        { header: 'MOTIVO', key: 'reason', width: 25 },
-        { header: 'JUSTIFICATIVA', key: 'justification', width: 30 }
+        { header: 'PRODUTO', key: 'productName', width: 45 },
+        { header: 'BARRAS', key: 'barcode', width: 20 },
+        { header: 'DATA', key: 'date', width: 12 },
+        { header: 'MOTIVO', key: 'reason', width: 20 }
     ];
-    
-    // Re-aplica estilo
-    worksheet.getRow(1).eachCell((cell) => {
+    worksheet.getRow(1).eachCell(cell => {
         cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: '1E293B' } };
         cell.font = { color: { argb: 'FFFFFF' }, bold: true };
     });
-
-    exp.data.forEach(d => worksheet.addRow(d));
+    v.content.forEach(row => worksheet.addRow(row));
     const buffer = await workbook.xlsx.writeBuffer();
-    saveAs(new Blob([buffer]), exp.filename);
+    saveAs(new Blob([buffer]), v.filename);
 }
