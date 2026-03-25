@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Metasboard | Gestão Enterprise de Triagem</title>
+    <title>Metasboard | Gestão de Triagem Premium</title>
     
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script>
@@ -12,7 +12,7 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     
     <style>
-        /* --- VARIÁVEIS DE DESIGN SYSTEM --- */
+        /* --- DESIGN SYSTEM METASBOARD --- */
         :root {
             --navy-dark: #0f172a;
             --navy-light: #1e293b;
@@ -25,14 +25,8 @@
             --bg: #f8fafc;
             --white: #ffffff;
             --sidebar-width: 280px;
-            --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
-            --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1);
-            --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1);
-            --radius-lg: 16px;
-            --radius-md: 12px;
         }
 
-        /* --- RESET GERAL --- */
         * {
             box-sizing: border-box;
             margin: 0;
@@ -45,10 +39,10 @@
             color: var(--navy-light);
             display: flex;
             min-height: 100vh;
-            overflow: hidden;
+            overflow: hidden; /* Mantém a estrutura fixa */
         }
 
-        /* --- SIDEBAR E NAVEGAÇÃO --- */
+        /* --- SIDEBAR EESTILIZADA --- */
         aside {
             width: var(--sidebar-width);
             background-color: var(--navy-dark);
@@ -76,7 +70,7 @@
         
         nav {
             flex-grow: 1;
-            padding: 2.5rem 1rem;
+            padding: 2rem 1rem;
         }
 
         .nav-btn {
@@ -90,7 +84,7 @@
             background: transparent;
             color: #94a3b8;
             cursor: pointer;
-            border-radius: var(--radius-md);
+            border-radius: 12px;
             font-weight: 600;
             font-size: 0.95rem;
             transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -109,13 +103,12 @@
             box-shadow: 0 4px 20px rgba(37, 99, 235, 0.4);
         }
 
-        /* --- ÁREA PRINCIPAL --- */
+        /* --- CONTEÚDO PRINCIPAL --- */
         main {
             flex-grow: 1;
             height: 100vh;
             overflow-y: auto;
             padding: 3rem;
-            scroll-behavior: smooth;
         }
 
         .container {
@@ -123,258 +116,124 @@
             margin: 0 auto;
         }
         
+        /* Sistema de Abas */
         .tab-content {
-            display: none;
-            animation: slideInUp 0.6s ease;
+            display: none; /* Escondido por padrão */
+            animation: fadeIn 0.4s ease-out;
         }
 
         .tab-content.active {
-            display: block;
+            display: block; /* Mostra apenas a ativa */
         }
 
-        @keyframes slideInUp {
-            from {
-                opacity: 0;
-                transform: translateY(40px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
         }
 
-        /* --- CARDS E ELEMENTOS DE UI --- */
+        /* --- CARDS E UI --- */
         .card {
             background-color: var(--white);
-            border-radius: var(--radius-lg);
+            border-radius: 16px;
             padding: 2.5rem;
-            box-shadow: var(--shadow-sm);
-            margin-bottom: 3rem;
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
+            margin-bottom: 2.5rem;
             border: 1px solid var(--border);
-            transition: transform 0.3s ease, box-shadow 0.3s ease;
-        }
-
-        .card:hover {
-            box-shadow: var(--shadow-lg);
         }
 
         h3 {
-            margin-bottom: 2rem;
+            margin-bottom: 1.5rem;
             font-size: 1.5rem;
             font-weight: 800;
             color: var(--navy-dark);
-            display: flex;
-            align-items: center;
-            gap: 15px;
         }
 
-        /* --- DASHBOARD E KPIs --- */
+        /* --- DASHBOARD --- */
         .stats-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-            gap: 2rem;
-            margin-bottom: 3rem;
-        }
-
-        .stat-card {
-            background-color: var(--white);
-            padding: 2rem;
-            border-radius: var(--radius-lg);
-            border-left: 8px solid var(--primary);
-            box-shadow: var(--shadow-sm);
-            transition: transform 0.3s ease;
-        }
-
-        .stat-card:hover {
-            transform: translateY(-8px);
-        }
-
-        .stat-card.success { border-left-color: var(--success); }
-        .stat-card.warning { border-left-color: var(--warning); }
-        .stat-card.danger { border-left-color: var(--danger); }
-
-        .stat-card h4 {
-            font-size: 0.85rem;
-            color: #64748b;
-            text-transform: uppercase;
-            margin-bottom: 12px;
-            font-weight: 700;
-            letter-spacing: 1.2px;
-        }
-
-        .stat-card p {
-            font-size: 2rem;
-            font-weight: 800;
-            color: var(--navy-dark);
-        }
-
-        /* --- FORMULÁRIOS --- */
-        .form-row {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-            gap: 2rem;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 1.5rem;
             margin-bottom: 2rem;
         }
 
-        .form-group {
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
+        .stat-card {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 12px;
+            border-left: 6px solid var(--primary);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
         }
 
-        label {
-            font-size: 0.85rem;
-            font-weight: 700;
-            color: #475569;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-
-        input, select {
-            padding: 1.1rem;
-            border: 1px solid var(--border);
-            border-radius: var(--radius-md);
-            font-size: 1rem;
-            background-color: var(--white);
-            transition: all 0.3s ease;
-            color: var(--navy-dark);
-        }
-
-        input:focus, select:focus {
-            border-color: var(--primary);
-            outline: none;
-            box-shadow: 0 0 0 5px rgba(37, 99, 235, 0.15);
-        }
-
-        /* --- BOTÕES --- */
-        .btn {
-            padding: 1.1rem 2rem;
-            border: none;
-            border-radius: var(--radius-md);
-            font-weight: 700;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            font-size: 1rem;
-            display: inline-flex;
-            align-items: center;
-            gap: 12px;
-            justify-content: center;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-        }
-
-        .btn-primary { background-color: var(--primary); color: var(--white); }
-        .btn-primary:hover { 
-            background-color: var(--primary-hover); 
-            box-shadow: 0 8px 20px rgba(37, 99, 235, 0.35); 
-            transform: translateY(-2px);
-        }
-
-        .btn-success { background-color: var(--success); color: var(--white); }
-        .btn-danger { background-color: var(--danger); color: var(--white); }
-        
-        .btn-outline { 
-            background-color: var(--white); 
-            color: var(--navy-light); 
-            border: 2px solid var(--border); 
-        }
-        .btn-outline:hover { 
-            background-color: #f1f5f9; 
-            border-color: #cbd5e1; 
-        }
+        .stat-card p { font-size: 1.8rem; font-weight: 800; }
 
         /* --- TABELAS --- */
         .table-container {
+            width: 100%;
             overflow-x: auto;
-            border-radius: var(--radius-lg);
+            border-radius: 12px;
             border: 1px solid var(--border);
-            background-color: var(--white);
-            box-shadow: var(--shadow-sm);
         }
 
         table {
             width: 100%;
             border-collapse: collapse;
-            min-width: 1000px;
         }
 
         th {
-            background-color: #f8fafc;
-            padding: 1.5rem 1.2rem;
+            background: #f8fafc;
+            padding: 1.2rem;
             text-align: left;
             font-size: 0.8rem;
-            color: #64748b;
             text-transform: uppercase;
             border-bottom: 2px solid var(--border);
-            font-weight: 800;
-            position: sticky;
-            top: 0;
-            z-index: 10;
         }
 
         td {
-            padding: 1.4rem 1.2rem;
+            padding: 1rem;
             border-bottom: 1px solid #f1f5f9;
-            font-size: 0.9rem;
-            vertical-align: middle;
         }
 
-        tr:hover {
-            background-color: #f8fafc;
-        }
-
-        /* --- BADGES --- */
-        .badge {
-            padding: 8px 14px;
+        /* --- BOTÕES E INPUTS --- */
+        .btn {
+            padding: 1rem 1.5rem;
             border-radius: 10px;
-            font-size: 11px;
-            font-weight: 800;
-            text-transform: uppercase;
-            letter-spacing: 0.8px;
-        }
-
-        .badge-garantia { 
-            background-color: #dcfce7; 
-            color: #15803d; 
-            border: 1px solid #bbf7d0; 
-        }
-
-        .badge-descarte { 
-            background-color: #fee2e2; 
-            color: #b91c1c; 
-            border: 1px solid #fecaca; 
-        }
-
-        /* --- DROPZONE E HINTS --- */
-        .dropzone {
-            border: 4px dashed #cbd5e1;
-            padding: 4rem 2rem;
-            text-align: center;
-            border-radius: var(--radius-lg);
-            background-color: #f8fafc;
+            border: none;
+            font-weight: 700;
             cursor: pointer;
-            transition: all 0.4s ease;
-            margin-bottom: 2.5rem;
+            transition: 0.3s;
+            text-transform: uppercase;
         }
 
-        .dropzone:hover {
-            border-color: var(--primary);
-            background-color: #eff6ff;
-            transform: scale(1.01);
+        .btn-primary { background: var(--primary); color: white; }
+        .btn-success { background: var(--success); color: white; }
+        .btn-danger { background: var(--danger); color: white; }
+        
+        input, select {
+            padding: 0.8rem;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            width: 100%;
+            margin-top: 5px;
         }
 
-        .csv-hint {
-            font-size: 13px;
-            color: #475569;
-            background-color: #eff6ff;
-            padding: 20px;
-            border-radius: var(--radius-md);
-            margin-bottom: 25px;
-            border-left: 6px solid var(--primary);
-            display: flex;
-            align-items: center;
-            gap: 15px;
+        .dropzone {
+            border: 3px dashed var(--border);
+            padding: 3rem;
+            text-align: center;
+            border-radius: 16px;
+            cursor: pointer;
+            margin-bottom: 2rem;
         }
+
+        /* Badge de Status */
+        .badge {
+            padding: 5px 10px;
+            border-radius: 6px;
+            font-size: 11px;
+            font-weight: 700;
+        }
+        .badge-garantia { background: #dcfce7; color: #15803d; }
+        .badge-descarte { background: #fee2e2; color: #b91c1c; }
     </style>
 </head>
 <body>
@@ -384,52 +243,36 @@
         <h2>Metasboard</h2>
     </div>
     <nav>
-        <button class="nav-btn active" onclick="switchTab('triagem')">
-            <span>🔍</span> Nova Triagem
-        </button>
-        <button class="nav-btn" onclick="switchTab('dashboard')">
-            <span>📊</span> Dashboard / KPIs
-        </button>
-        <button class="nav-btn" onclick="switchTab('precos')">
-            <span>💰</span> Gestão de Preços
-        </button>
-        <button class="nav-btn" onclick="switchTab('lote')">
-            <span>📋</span> Lote em Aberto
-        </button>
-        <button class="nav-btn" onclick="switchTab('cofre')">
-            <span>🔒</span> Cofre de Arquivos
-        </button>
+        <button id="btn-triagem" class="nav-btn active" onclick="switchTab('triagem')">🔍 Nova Triagem</button>
+        <button id="btn-dashboard" class="nav-btn" onclick="switchTab('dashboard')">📊 Dashboard</button>
+        <button id="btn-precos" class="nav-btn" onclick="switchTab('precos')">💰 Gestão de Preços</button>
+        <button id="btn-lote" class="nav-btn" onclick="switchTab('lote')">📋 Lote em Aberto</button>
+        <button id="btn-cofre" class="nav-btn" onclick="switchTab('cofre')">🔒 Cofre</button>
     </nav>
 </aside>
 
 <main>
     <div class="container">
         
-        <div id="triagem" class="tab-content active">
+        <section id="triagem" class="tab-content active">
             <div class="card">
-                <h3>🔍 Entrada de Mercadoria</h3>
+                <h3>🔍 Registrar Nova Peça</h3>
                 <div class="dropzone" onclick="document.getElementById('csvMaster').click()">
-                    <p id="masterStatus" style="font-size: 1.2rem; color: #64748b;">
-                        <strong>📂 Clique aqui para importar o Banco Master de Produtos (CSV)</strong>
-                    </p>
+                    <p id="masterStatus">Clique para importar Banco Master (CSV)</p>
                     <input type="file" id="csvMaster" accept=".csv" hidden onchange="importMaster(this)">
                 </div>
-
-                <div class="form-row">
-                    <div class="form-group" style="grid-column: span 2;">
-                        <label>ID do Produto (SKU)</label>
-                        <input type="text" id="inpId" placeholder="Digite ou bipe o ID (Ex: 10005)" oninput="previewProd()">
-                        <div id="prevName" style="height: 25px; font-size: 13px; color: var(--primary); font-weight: 700; margin-top: 8px;"></div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                    <div>
+                        <label>ID Produto</label>
+                        <input type="text" id="inpId" oninput="previewProd()" placeholder="Ex: 10005">
+                        <div id="prevName" style="color: var(--primary); font-weight: 700; margin-top: 5px; font-size: 13px;"></div>
                     </div>
-                    <div class="form-group">
-                        <label>Código de Barras Único</label>
-                        <input type="text" id="inpBar" placeholder="Bipe o Barcode da peça">
+                    <div>
+                        <label>Barcode (Bipe aqui)</label>
+                        <input type="text" id="inpBar" placeholder="Código Único">
                     </div>
-                </div>
-
-                <div class="form-row">
-                    <div class="form-group">
-                        <label>Fornecedor de Origem</label>
+                    <div>
+                        <label>Fornecedor</label>
                         <select id="inpSup" onchange="previewProd()">
                             <option value="QUARTT">QUARTT</option>
                             <option value="CNN">CNN</option>
@@ -437,17 +280,102 @@
                             <option value="GOLD">GOLD</option>
                         </select>
                     </div>
-                    <div class="form-group">
-                        <label>Data da Compra</label>
+                    <div>
+                        <label>Data</label>
                         <input type="date" id="inpDate">
                     </div>
-                    <div class="form-group">
-                        <label>Motivo da Triagem</label>
-                        <select id="inpReason">
-                            <option value="Defeito Técnico">Defeito Técnico</option>
-                            <option value="Touch intermitente">Touch intermitente</option>
-                            <option value="Tela Trincada">Tela Trincada (Descarte)</option>
-                            <option value="Bateria Estufada">Bateria Estufada (Descarte)</option>
-                        </select>
+                </div>
+                <div style="margin-top: 1rem;">
+                    <label>Motivo</label>
+                    <select id="inpReason">
+                        <option value="Defeito Técnico">Defeito Técnico</option>
+                        <option value="Tela Trincada">Tela Trincada (Descarte)</option>
+                        <option value="Bateria Estufada">Bateria Estufada (Descarte)</option>
+                    </select>
+                </div>
+                <button class="btn btn-primary" style="width: 100%; margin-top: 1.5rem;" onclick="addPeça()">Adicionar ao Lote</button>
+            </div>
+        </section>
+
+        <section id="dashboard" class="tab-content">
+            <div class="stats-grid">
+                <div class="stat-card"><h4>Total Itens</h4><p id="statTotal">0</p></div>
+                <div class="stat-card" style="border-left-color: var(--success)"><h4>Valor Garantia</h4><p id="statGarValue">R$ 0,00</p></div>
+                <div class="stat-card" style="border-left-color: var(--danger)"><h4>Taxa Descarte</h4><p id="statDesRate">0%</p></div>
+            </div>
+            <div class="card">
+                <h3>Gráfico de Performance</h3>
+                <canvas id="chartVol" style="max-height: 300px;"></canvas>
+            </div>
+        </section>
+
+        <section id="precos" class="tab-content">
+            <div class="card">
+                <h3>💰 Matriz de Preços</h3>
+                <div style="display: flex; gap: 10px; margin-bottom: 2rem;">
+                    <button class="btn btn-outline" onclick="triggerPriceImport('QUARTT')">📁 QUARTT</button>
+                    <button class="btn btn-outline" onclick="triggerPriceImport('CNN')">📁 CNN</button>
+                    <button class="btn btn-outline" onclick="triggerPriceImport('AG')">📁 AG</button>
+                    <button class="btn btn-outline" onclick="triggerPriceImport('GOLD')">📁 GOLD</button>
+                    <input type="file" id="priceInput" hidden onchange="processPriceCsv(this)">
+                </div>
+                <div style="margin-bottom: 1rem;">
+                    <input type="text" id="searchPrice" placeholder="🔍 Pesquisar por nome ou ID..." oninput="renderPriceTable()">
+                </div>
+                <div class="table-container" style="max-height: 500px;">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Produto</th>
+                                <th>QUARTT</th>
+                                <th>CNN</th>
+                                <th>AG</th>
+                                <th>GOLD</th>
+                            </tr>
+                        </thead>
+                        <tbody id="priceBody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <section id="lote" class="tab-content">
+            <div class="card">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+                    <h3>📋 Lote em Aberto</h3>
+                    <div style="display: flex; gap: 10px;">
+                        <select id="selSup" style="width: auto;"><option value="QUARTT">QUARTT</option><option value="CNN">CNN</option></select>
+                        <button class="btn btn-success" onclick="exportFiltered('Garantia')">Exportar Garantia</button>
                     </div>
                 </div>
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Forn.</th>
+                                <th>Produto</th>
+                                <th>Barcode</th>
+                                <th>Status</th>
+                                <th>Ação</th>
+                            </tr>
+                        </thead>
+                        <tbody id="loteBody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <section id="cofre" class="tab-content">
+            <div class="card">
+                <h3>🔒 Arquivos Gerados</h3>
+                <div id="vaultBody"></div>
+            </div>
+        </section>
+
+    </div>
+</main>
+
+<script src="app.js"></script>
+</body>
+</html>
