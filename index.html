@@ -3,15 +3,16 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Metasboard | Gestão de Triagem Enterprise</title>
+    <title>Metasboard | Gestão Enterprise de Triagem</title>
     
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.3.0/exceljs.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     
     <style>
+        /* --- VARIÁVEIS DE DESIGN SYSTEM --- */
         :root {
             --navy-dark: #0f172a;
             --navy-light: #1e293b;
@@ -22,212 +23,382 @@
             --warning: #f59e0b;
             --border: #e2e8f0;
             --bg: #f8fafc;
-            --sidebar-width: 260px;
+            --white: #ffffff;
+            --sidebar-width: 280px;
             --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
             --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+            --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1);
+            --radius-lg: 16px;
+            --radius-md: 12px;
         }
 
-        /* Reset e Base */
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-        body { 
-            font-family: 'Inter', sans-serif; 
-            background: var(--bg); 
-            color: var(--navy-light); 
-            display: flex; 
-            min-height: 100vh; 
-            overflow: hidden; 
+        /* --- RESET GERAL --- */
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Inter', sans-serif;
         }
 
-        /* Sidebar Profissional */
-        aside { 
-            width: var(--sidebar-width); 
-            background: var(--navy-dark); 
-            color: white; 
-            display: flex; 
-            flex-direction: column; 
-            flex-shrink: 0; 
-            z-index: 100; 
-            box-shadow: 4px 0 10px rgba(0,0,0,0.2); 
+        body {
+            background-color: var(--bg);
+            color: var(--navy-light);
+            display: flex;
+            min-height: 100vh;
+            overflow: hidden;
         }
-        .sidebar-header { 
-            padding: 2.5rem 1.5rem; 
-            text-align: center; 
-            border-bottom: 1px solid #334155; 
+
+        /* --- SIDEBAR E NAVEGAÇÃO --- */
+        aside {
+            width: var(--sidebar-width);
+            background-color: var(--navy-dark);
+            color: var(--white);
+            display: flex;
+            flex-direction: column;
+            flex-shrink: 0;
+            z-index: 100;
+            box-shadow: 4px 0 15px rgba(0, 0, 0, 0.2);
         }
-        .sidebar-header h2 { 
-            font-size: 1.2rem; 
-            font-weight: 700; 
-            letter-spacing: 2px; 
-            text-transform: uppercase; 
-            color: #f1f5f9; 
+
+        .sidebar-header {
+            padding: 3rem 1.5rem;
+            text-align: center;
+            border-bottom: 1px solid #334155;
+        }
+
+        .sidebar-header h2 {
+            font-size: 1.4rem;
+            font-weight: 800;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+            color: #f1f5f9;
         }
         
-        nav { flex-grow: 1; padding: 2rem 0.75rem; }
-        .nav-btn { 
-            width: 100%; 
-            display: flex; 
-            align-items: center; 
-            gap: 14px; 
-            padding: 1rem; 
-            margin-bottom: 0.6rem; 
-            border: none; 
-            background: transparent; 
-            color: #94a3b8; 
-            cursor: pointer; 
-            border-radius: 10px; 
-            font-weight: 500; 
-            font-size: 0.95rem; 
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); 
-            text-align: left; 
-        }
-        .nav-btn:hover { background: #1e293b; color: white; transform: translateX(5px); }
-        .nav-btn.active { 
-            background: var(--primary); 
-            color: white; 
-            box-shadow: 0 4px 15px rgba(37, 99, 235, 0.3); 
+        nav {
+            flex-grow: 1;
+            padding: 2.5rem 1rem;
         }
 
-        /* Conteúdo Principal */
-        main { flex-grow: 1; height: 100vh; overflow-y: auto; padding: 2.5rem; scroll-behavior: smooth; }
-        .container { max-width: 1300px; margin: 0 auto; }
+        .nav-btn {
+            width: 100%;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            padding: 1.2rem;
+            margin-bottom: 0.8rem;
+            border: none;
+            background: transparent;
+            color: #94a3b8;
+            cursor: pointer;
+            border-radius: var(--radius-md);
+            font-weight: 600;
+            font-size: 0.95rem;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            text-align: left;
+        }
+
+        .nav-btn:hover {
+            background-color: #1e293b;
+            color: var(--white);
+            transform: translateX(10px);
+        }
+
+        .nav-btn.active {
+            background-color: var(--primary);
+            color: var(--white);
+            box-shadow: 0 4px 20px rgba(37, 99, 235, 0.4);
+        }
+
+        /* --- ÁREA PRINCIPAL --- */
+        main {
+            flex-grow: 1;
+            height: 100vh;
+            overflow-y: auto;
+            padding: 3rem;
+            scroll-behavior: smooth;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
         
-        /* Animações de Tab */
-        .tab-content { display: none; animation: slideUp 0.4s ease-out; }
-        .tab-content.active { display: block; }
-        @keyframes slideUp { 
-            from { opacity: 0; transform: translateY(20px); } 
-            to { opacity: 1; transform: translateY(0); } 
+        .tab-content {
+            display: none;
+            animation: slideInUp 0.6s ease;
         }
 
-        /* Estilização de Cards */
-        .card { 
-            background: white; 
-            border-radius: 16px; 
-            padding: 2rem; 
-            box-shadow: var(--shadow-sm); 
-            margin-bottom: 2rem; 
-            border: 1px solid var(--border); 
-            transition: box-shadow 0.3s ease;
-        }
-        .card:hover { box-shadow: var(--shadow-md); }
-        h3 { 
-            margin-bottom: 1.5rem; 
-            font-size: 1.25rem; 
-            font-weight: 700;
-            color: var(--navy-dark); 
-            display: flex; 
-            align-items: center; 
-            gap: 12px; 
+        .tab-content.active {
+            display: block;
         }
 
-        /* Grid de KPIs */
-        .stats-grid { 
-            display: grid; 
-            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); 
-            gap: 1.5rem; 
-            margin-bottom: 2rem; 
+        @keyframes slideInUp {
+            from {
+                opacity: 0;
+                transform: translateY(40px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
         }
-        .stat-card { 
-            background: white; 
-            padding: 1.5rem; 
-            border-radius: 14px; 
-            border-left: 5px solid var(--primary); 
-            box-shadow: var(--shadow-sm); 
+
+        /* --- CARDS E ELEMENTOS DE UI --- */
+        .card {
+            background-color: var(--white);
+            border-radius: var(--radius-lg);
+            padding: 2.5rem;
+            box-shadow: var(--shadow-sm);
+            margin-bottom: 3rem;
+            border: 1px solid var(--border);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
         }
+
+        .card:hover {
+            box-shadow: var(--shadow-lg);
+        }
+
+        h3 {
+            margin-bottom: 2rem;
+            font-size: 1.5rem;
+            font-weight: 800;
+            color: var(--navy-dark);
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        /* --- DASHBOARD E KPIs --- */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 2rem;
+            margin-bottom: 3rem;
+        }
+
+        .stat-card {
+            background-color: var(--white);
+            padding: 2rem;
+            border-radius: var(--radius-lg);
+            border-left: 8px solid var(--primary);
+            box-shadow: var(--shadow-sm);
+            transition: transform 0.3s ease;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-8px);
+        }
+
         .stat-card.success { border-left-color: var(--success); }
         .stat-card.warning { border-left-color: var(--warning); }
-        .stat-card h4 { font-size: 0.75rem; color: #64748b; text-transform: uppercase; margin-bottom: 8px; font-weight: 700; }
-        .stat-card p { font-size: 1.5rem; font-weight: 800; color: var(--navy-dark); }
+        .stat-card.danger { border-left-color: var(--danger); }
 
-        /* Formulários e Inputs */
-        .form-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1.25rem; margin-bottom: 1.5rem; }
-        .form-group { display: flex; flex-direction: column; gap: 8px; }
-        label { font-size: 0.75rem; font-weight: 700; color: #475569; text-transform: uppercase; }
-        input, select { 
-            padding: 0.85rem; 
-            border: 1px solid var(--border); 
-            border-radius: 10px; 
-            font-size: 0.95rem; 
-            background: #ffffff;
-            transition: all 0.2s;
-        }
-        input:focus, select:focus { 
-            border-color: var(--primary); 
-            outline: none; 
-            box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.1); 
-        }
-
-        /* Botões Enterprise */
-        .btn { 
-            padding: 0.85rem 1.5rem; 
-            border: none; 
-            border-radius: 10px; 
-            font-weight: 600; 
-            cursor: pointer; 
-            transition: all 0.2s; 
-            font-size: 0.9rem; 
-            display: inline-flex; 
-            align-items: center; 
-            gap: 10px; 
-            justify-content: center;
-        }
-        .btn-primary { background: var(--primary); color: white; }
-        .btn-primary:hover { background: var(--primary-hover); transform: translateY(-1px); }
-        .btn-success { background: var(--success); color: white; }
-        .btn-danger { background: var(--danger); color: white; }
-        .btn-outline { background: #f1f5f9; color: var(--navy-light); border: 1px solid var(--border); }
-        .btn-outline:hover { background: #e2e8f0; }
-
-        /* Tabelas Avançadas */
-        .table-container { 
-            overflow-x: auto; 
-            border-radius: 12px; 
-            border: 1px solid var(--border); 
-            background: white;
-        }
-        table { width: 100%; border-collapse: collapse; min-width: 800px; }
-        th { 
-            background: #f8fafc; 
-            padding: 1.25rem 1rem; 
-            text-align: left; 
-            font-size: 0.75rem; 
-            color: #64748b; 
-            text-transform: uppercase; 
-            border-bottom: 2px solid var(--border); 
+        .stat-card h4 {
+            font-size: 0.85rem;
+            color: #64748b;
+            text-transform: uppercase;
+            margin-bottom: 12px;
             font-weight: 700;
+            letter-spacing: 1.2px;
         }
-        td { padding: 1rem; border-bottom: 1px solid #f1f5f9; font-size: 0.9rem; vertical-align: middle; }
-        tr:hover { background: #f8fafc; }
 
-        /* Badges */
-        .badge { padding: 5px 10px; border-radius: 6px; font-size: 11px; font-weight: 700; text-transform: uppercase; }
-        .badge-garantia { background: #dcfce7; color: #15803d; border: 1px solid #bbf7d0; }
-        .badge-descarte { background: #fee2e2; color: #b91c1c; border: 1px solid #fecaca; }
+        .stat-card p {
+            font-size: 2rem;
+            font-weight: 800;
+            color: var(--navy-dark);
+        }
 
-        /* Dropzone */
-        .dropzone {
-            border: 2px dashed #cbd5e1;
-            padding: 2.5rem;
-            text-align: center;
-            border-radius: 16px;
-            background: #f8fafc;
-            cursor: pointer;
-            transition: all 0.3s;
+        /* --- FORMULÁRIOS --- */
+        .form-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 2rem;
             margin-bottom: 2rem;
         }
-        .dropzone:hover { border-color: var(--primary); background: #eff6ff; }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        label {
+            font-size: 0.85rem;
+            font-weight: 700;
+            color: #475569;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        input, select {
+            padding: 1.1rem;
+            border: 1px solid var(--border);
+            border-radius: var(--radius-md);
+            font-size: 1rem;
+            background-color: var(--white);
+            transition: all 0.3s ease;
+            color: var(--navy-dark);
+        }
+
+        input:focus, select:focus {
+            border-color: var(--primary);
+            outline: none;
+            box-shadow: 0 0 0 5px rgba(37, 99, 235, 0.15);
+        }
+
+        /* --- BOTÕES --- */
+        .btn {
+            padding: 1.1rem 2rem;
+            border: none;
+            border-radius: var(--radius-md);
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 1rem;
+            display: inline-flex;
+            align-items: center;
+            gap: 12px;
+            justify-content: center;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .btn-primary { background-color: var(--primary); color: var(--white); }
+        .btn-primary:hover { 
+            background-color: var(--primary-hover); 
+            box-shadow: 0 8px 20px rgba(37, 99, 235, 0.35); 
+            transform: translateY(-2px);
+        }
+
+        .btn-success { background-color: var(--success); color: var(--white); }
+        .btn-danger { background-color: var(--danger); color: var(--white); }
+        
+        .btn-outline { 
+            background-color: var(--white); 
+            color: var(--navy-light); 
+            border: 2px solid var(--border); 
+        }
+        .btn-outline:hover { 
+            background-color: #f1f5f9; 
+            border-color: #cbd5e1; 
+        }
+
+        /* --- TABELAS --- */
+        .table-container {
+            overflow-x: auto;
+            border-radius: var(--radius-lg);
+            border: 1px solid var(--border);
+            background-color: var(--white);
+            box-shadow: var(--shadow-sm);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            min-width: 1000px;
+        }
+
+        th {
+            background-color: #f8fafc;
+            padding: 1.5rem 1.2rem;
+            text-align: left;
+            font-size: 0.8rem;
+            color: #64748b;
+            text-transform: uppercase;
+            border-bottom: 2px solid var(--border);
+            font-weight: 800;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+        }
+
+        td {
+            padding: 1.4rem 1.2rem;
+            border-bottom: 1px solid #f1f5f9;
+            font-size: 0.9rem;
+            vertical-align: middle;
+        }
+
+        tr:hover {
+            background-color: #f8fafc;
+        }
+
+        /* --- BADGES --- */
+        .badge {
+            padding: 8px 14px;
+            border-radius: 10px;
+            font-size: 11px;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+        }
+
+        .badge-garantia { 
+            background-color: #dcfce7; 
+            color: #15803d; 
+            border: 1px solid #bbf7d0; 
+        }
+
+        .badge-descarte { 
+            background-color: #fee2e2; 
+            color: #b91c1c; 
+            border: 1px solid #fecaca; 
+        }
+
+        /* --- DROPZONE E HINTS --- */
+        .dropzone {
+            border: 4px dashed #cbd5e1;
+            padding: 4rem 2rem;
+            text-align: center;
+            border-radius: var(--radius-lg);
+            background-color: #f8fafc;
+            cursor: pointer;
+            transition: all 0.4s ease;
+            margin-bottom: 2.5rem;
+        }
+
+        .dropzone:hover {
+            border-color: var(--primary);
+            background-color: #eff6ff;
+            transform: scale(1.01);
+        }
+
+        .csv-hint {
+            font-size: 13px;
+            color: #475569;
+            background-color: #eff6ff;
+            padding: 20px;
+            border-radius: var(--radius-md);
+            margin-bottom: 25px;
+            border-left: 6px solid var(--primary);
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
     </style>
 </head>
 <body>
 
 <aside>
-    <div class="sidebar-header"><h2>Metasboard</h2></div>
+    <div class="sidebar-header">
+        <h2>Metasboard</h2>
+    </div>
     <nav>
-        <button class="nav-btn active" onclick="switchTab('triagem')"><span>🔍</span> Nova Triagem</button>
-        <button class="nav-btn" onclick="switchTab('dashboard')"><span>📊</span> Dashboard / KPIs</button>
-        <button class="nav-btn" onclick="switchTab('precos')"><span>💰</span> Gestão de Preços</button>
-        <button class="nav-btn" onclick="switchTab('lote')"><span>📋</span> Lote em Aberto</button>
-        <button class="nav-btn" onclick="switchTab('cofre')"><span>🔒</span> Cofre de Arquivos</button>
+        <button class="nav-btn active" onclick="switchTab('triagem')">
+            <span>🔍</span> Nova Triagem
+        </button>
+        <button class="nav-btn" onclick="switchTab('dashboard')">
+            <span>📊</span> Dashboard / KPIs
+        </button>
+        <button class="nav-btn" onclick="switchTab('precos')">
+            <span>💰</span> Gestão de Preços
+        </button>
+        <button class="nav-btn" onclick="switchTab('lote')">
+            <span>📋</span> Lote em Aberto
+        </button>
+        <button class="nav-btn" onclick="switchTab('cofre')">
+            <span>🔒</span> Cofre de Arquivos
+        </button>
     </nav>
 </aside>
 
@@ -238,25 +409,27 @@
             <div class="card">
                 <h3>🔍 Entrada de Mercadoria</h3>
                 <div class="dropzone" onclick="document.getElementById('csvMaster').click()">
-                    <p id="masterStatus"><strong>📂 Clique para importar o Banco Master (CSV)</strong></p>
+                    <p id="masterStatus" style="font-size: 1.2rem; color: #64748b;">
+                        <strong>📂 Clique aqui para importar o Banco Master de Produtos (CSV)</strong>
+                    </p>
                     <input type="file" id="csvMaster" accept=".csv" hidden onchange="importMaster(this)">
                 </div>
 
                 <div class="form-row">
                     <div class="form-group" style="grid-column: span 2;">
-                        <label>ID do Produto</label>
-                        <input type="text" id="inpId" placeholder="Digite ou bipe o ID" oninput="previewProd()">
-                        <div id="prevName" style="height: 15px; font-size: 11px; color: var(--primary); font-weight: 600; margin-top: 4px;"></div>
+                        <label>ID do Produto (SKU)</label>
+                        <input type="text" id="inpId" placeholder="Digite ou bipe o ID (Ex: 10005)" oninput="previewProd()">
+                        <div id="prevName" style="height: 25px; font-size: 13px; color: var(--primary); font-weight: 700; margin-top: 8px;"></div>
                     </div>
                     <div class="form-group">
-                        <label>Código de Barras (Único)</label>
-                        <input type="text" id="inpBar" placeholder="Bipe o Barcode">
+                        <label>Código de Barras Único</label>
+                        <input type="text" id="inpBar" placeholder="Bipe o Barcode da peça">
                     </div>
                 </div>
 
                 <div class="form-row">
                     <div class="form-group">
-                        <label>Fornecedor</label>
+                        <label>Fornecedor de Origem</label>
                         <select id="inpSup" onchange="previewProd()">
                             <option value="QUARTT">QUARTT</option>
                             <option value="CNN">CNN</option>
@@ -265,7 +438,7 @@
                         </select>
                     </div>
                     <div class="form-group">
-                        <label>Data de Compra</label>
+                        <label>Data da Compra</label>
                         <input type="date" id="inpDate">
                     </div>
                     <div class="form-group">
@@ -278,99 +451,3 @@
                         </select>
                     </div>
                 </div>
-                <button class="btn btn-primary" style="width: 100%; margin-top: 1rem;" onclick="addPeça()">Registrar Item no Lote</button>
-            </div>
-
-            <div class="card">
-                <h3>🕒 Últimos 5 Itens</h3>
-                <div class="table-container">
-                    <table>
-                        <thead><tr><th>Produto</th><th>Fornecedor</th><th>Análise</th><th>Valor Est.</th></tr></thead>
-                        <tbody id="recentBody"></tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-
-        <div id="dashboard" class="tab-content">
-            <div class="stats-grid">
-                <div class="stat-card"><h4>Total de Peças</h4><p id="statTotal">0</p></div>
-                <div class="stat-card success"><h4>Valor Recuperável</h4><p id="statGarValue">R$ 0,00</p></div>
-                <div class="stat-card"><h4>Ticket Médio</h4><p id="statAvg">R$ 0,00</p></div>
-                <div class="stat-card warning"><h4>Taxa de Recuperação</h4><p id="statRec">0%</p></div>
-            </div>
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 1.5rem;">
-                <div class="card"><h3>Volume por Fornecedor</h3><canvas id="chartVol"></canvas></div>
-                <div class="card"><h3>Impacto Financeiro (R$)</h3><canvas id="chartCash"></canvas></div>
-            </div>
-        </div>
-
-        <div id="precos" class="tab-content">
-            <div class="card">
-                <h3>💰 Matriz de Preços por SKU</h3>
-                <p style="font-size: 13px; color: #64748b; margin-bottom: 1.5rem;">Importe planilhas específicas de cada fornecedor para atualizar os valores automaticamente.</p>
-                
-                <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 2rem;">
-                    <button class="btn btn-outline" onclick="triggerPriceImport('QUARTT')">📁 Importar QUARTT</button>
-                    <button class="btn btn-outline" onclick="triggerPriceImport('CNN')">📁 Importar CNN</button>
-                    <button class="btn btn-outline" onclick="triggerPriceImport('AG')">📁 Importar AG</button>
-                    <button class="btn btn-outline" onclick="triggerPriceImport('GOLD')">📁 Importar GOLD</button>
-                    <input type="file" id="priceInput" hidden onchange="processPriceCsv(this)">
-                </div>
-
-                <div class="form-group" style="margin-bottom: 1rem;">
-                    <label>Pesquisar no Banco</label>
-                    <input type="text" id="searchPrice" placeholder="Digite nome ou ID..." oninput="renderPriceTable()">
-                </div>
-
-                <div class="table-container" style="max-height: 500px;">
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>ID</th>
-                                <th>Descrição do Produto</th>
-                                <th>QUARTT</th>
-                                <th>CNN</th>
-                                <th>AG</th>
-                                <th>GOLD</th>
-                            </tr>
-                        </thead>
-                        <tbody id="priceBody"></tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-
-        <div id="lote" class="tab-content">
-            <div class="card">
-                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 1.5rem;">
-                    <h3>📋 Gerenciamento de Lote</h3>
-                    <div style="display:flex; gap: 10px;">
-                        <button class="btn btn-primary" onclick="exportGeral()">📦 Exportar Tudo</button>
-                        <select id="selSup" style="width: 140px; padding: 0.5rem;"><option value="QUARTT">QUARTT</option><option value="CNN">CNN</option><option value="AG">AG</option><option value="GOLD">GOLD</option></select>
-                        <button class="btn btn-success" onclick="exportFiltered('Garantia')">Garantia</button>
-                        <button class="btn btn-danger" onclick="exportFiltered('Descarte')">Descarte</button>
-                    </div>
-                </div>
-                <div class="table-container">
-                    <table>
-                        <thead><tr><th>Forn.</th><th>ID/Produto</th><th>Barcode</th><th>Status</th><th>Motivo</th><th>Ação</th></tr></thead>
-                        <tbody id="loteBody"></tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-
-        <div id="cofre" class="tab-content">
-            <div class="card">
-                <h3>🔒 Arquivo Histórico</h3>
-                <div id="vaultBody"></div>
-            </div>
-        </div>
-
-    </div>
-</main>
-
-<script src="app.js"></script>
-</body>
-</html>
