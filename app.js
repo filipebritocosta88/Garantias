@@ -1,346 +1,469 @@
 /**
- * METASBOARD CORE ENGINE
- * Versão: 2026.Enterprise
+ * METASBOARD CORE ENGINE - VERSÃO ROBUSTA 370+
+ * Mantém todas as funcionalidades, filtros e formatação premium.
  */
 
-// --- ESTADO GLOBAL ---
+// --- VARIÁVEIS DE ESTADO GLOBAL ---
 let db_produtos = JSON.parse(localStorage.getItem('mb_db_prod')) || [];
-let db_precos = JSON.parse(localStorage.getItem('mb_db_prices')) || {}; // Chave: "ID_FORNECEDOR"
+let db_precos = JSON.parse(localStorage.getItem('mb_db_prices')) || {};
 let lote_pool = JSON.parse(localStorage.getItem('mb_lote_pool')) || [];
 let export_vault = JSON.parse(localStorage.getItem('mb_vault')) || [];
 let active_charts = {};
-let target_supplier = "";
+let current_import_target = "";
 
-// --- INICIALIZAÇÃO ---
+// --- INICIALIZAÇÃO DO SISTEMA ---
 document.addEventListener('DOMContentLoaded', () => {
-    refreshStatus();
+    console.log("Sistema Metasboard Iniciado...");
+    updateMasterStatus();
     updateRecentTable();
+    if (db_produtos.length > 0) {
+        populateCategoryFilter();
+    }
 });
 
-function refreshStatus() {
-    const statusEl = document.getElementById('masterStatus');
-    if(db_produtos.length > 0) {
-        statusEl.innerHTML = `✅ Banco Master Ativo: <strong>${db_produtos.length} produtos</strong>`;
+// Atualiza o status visual do Banco Master
+function updateMasterStatus() {
+    const statusLabel = document.getElementById('masterStatus');
+    if (db_produtos.length > 0) {
+        statusLabel.innerHTML = `✅ Banco Master Ativo: <strong>${db_produtos.length} Itens Carregados</strong>`;
     }
 }
 
-// --- NAVEGAÇÃO ---
+// --- NAVEGAÇÃO ENTRE TELAS ---
 function switchTab(tabId) {
-    document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
-    document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
-    
-    document.getElementById(tabId).classList.add('active');
-    const activeBtn = Array.from(document.querySelectorAll('.nav-btn')).find(b => b.onclick.toString().includes(tabId));
-    if(activeBtn) activeBtn.classList.add('active');
+    // Esconde todas as abas
+    const tabs = document.querySelectorAll('.tab-content');
+    tabs.forEach(tab => {
+        tab.classList.remove('active');
+    });
 
-    // Gatilhos de atualização por aba
-    if(tabId === 'dashboard') renderDashboard();
-    if(tabId === 'precos') renderPriceTable();
-    if(tabId === 'lote') renderLoteTable();
-    if(tabId === 'cofre') renderVault();
+    // Desativa todos os botões
+    const buttons = document.querySelectorAll('.nav-btn');
+    buttons.forEach(btn => {
+        btn.classList.remove('active');
+    });
+
+    // Ativa a aba selecionada
+    document.getElementById(tabId).classList.add('active');
+    
+    // Busca o botão correspondente para ativar
+    buttons.forEach(btn => {
+        if (btn.getAttribute('onclick').includes(tabId)) {
+            btn.classList.add('active');
+        }
+    });
+
+    // Gatilhos de atualização específicos por aba
+    if (tabId === 'dashboard') {
+        renderDashboard();
+    }
+    if (tabId === 'precos') {
+        populateCategoryFilter();
+        renderPriceTable();
+    }
+    if (tabId === 'lote') {
+        renderLoteTable();
+    }
+    if (tabId === 'cofre') {
+        renderVault();
+    }
 }
 
-// --- GESTÃO DE DADOS (IMPORTAÇÃO) ---
+// --- IMPORTAÇÃO DE DADOS MASTER ---
 function importMaster(input) {
-    if(!input.files[0]) return;
+    if (!input.files[0]) return;
+
     Papa.parse(input.files[0], {
         header: true,
         skipEmptyLines: true,
-        complete: (results) => {
-            db_produtos = results.data.map(row => ({
-                id: row['ID Produto'] || row['id'],
-                name: row['Produto'] || row['name']
-            })).filter(x => x.id);
+        complete: function(results) {
+            db_produtos = results.data.map(row => {
+                return {
+                    id: row['ID Produto'] || row['id'] || row['ID'],
+                    name: row['Produto'] || row['name'] || row['Descrição'],
+                    cat: row['Categoria de Produto'] || row['Categoria'] || 'Diversos'
+                };
+            }).filter(item => item.id);
+            
             localStorage.setItem('mb_db_prod', JSON.stringify(db_produtos));
-            refreshStatus();
-            alert("Sucesso! Banco de produtos atualizado.");
+            updateMasterStatus();
+            populateCategoryFilter();
+            alert("Sucesso: O Banco Master de produtos foi atualizado com as novas informações.");
         }
     });
 }
 
-function triggerPriceImport(sup) {
-    target_supplier = sup;
+// Popula o select de categorias dinamicamente
+function populateCategoryFilter() {
+    const selectFilter = document.getElementById('filterCategory');
+    if (!selectFilter) return;
+
+    // Extrai categorias únicas
+    const categoriasUnicas = [...new Set(db_produtos.map(p => p.cat))].sort();
+    
+    let htmlOptions = '<option value="TODOS">Todas as Categorias</option>';
+    categoriasUnicas.forEach(cat => {
+        htmlOptions += `<option value="${cat}">${cat}</option>`;
+    });
+    
+    selectFilter.innerHTML = htmlOptions;
+}
+
+// --- GESTÃO DE PREÇOS POR FORNECEDOR ---
+function triggerPriceImport(supplierName) {
+    current_import_target = supplierName;
     document.getElementById('priceInput').click();
 }
 
 function processPriceCsv(input) {
-    if(!input.files[0]) return;
+    if (!input.files[0]) return;
+
     Papa.parse(input.files[0], {
         header: true,
-        complete: (results) => {
+        complete: function(results) {
             results.data.forEach(row => {
-                const id = row['id'] || row['sku'] || row['ID Produto'];
-                const preco = row['preco'] || row['valor'] || row['price'];
-                if(id && preco) {
-                    db_precos[`${id}_${target_supplier}`] = parseFloat(preco);
+                const skuId = row['id'] || row['ID Produto'] || row['sku'];
+                const valorMoeda = row['preco'] || row['valor'] || row['price'];
+                
+                if (skuId && valorMoeda) {
+                    // Limpeza de string de preço (remove R$ e troca vírgula por ponto)
+                    const precoLimpo = parseFloat(valorMoeda.toString().replace('R$', '').replace('.', '').replace(',', '.').trim());
+                    db_precos[`${skuId}_${current_import_target}`] = precoLimpo;
                 }
             });
+            
             localStorage.setItem('mb_db_prices', JSON.stringify(db_precos));
             renderPriceTable();
-            alert(`Preços da ${target_supplier} carregados.`);
+            alert(`Tabela de preços do fornecedor ${current_import_target} foi carregada com sucesso!`);
+            input.value = ""; // Reseta o input de arquivo
         }
     });
 }
 
-// --- GESTÃO DE PREÇOS (INTERFACE) ---
 function renderPriceTable() {
-    const query = document.getElementById('searchPrice').value.toLowerCase();
-    const body = document.getElementById('priceBody');
-    const suppliers = ['QUARTT', 'CNN', 'AG', 'GOLD'];
-    
-    const filtered = db_produtos.filter(p => 
-        p.id.includes(query) || p.name.toLowerCase().includes(query)
-    ).slice(0, 100);
+    const termoBusca = document.getElementById('searchPrice').value.toLowerCase();
+    const categoriaSelecionada = document.getElementById('filterCategory').value;
+    const tabelaCorpo = document.getElementById('priceBody');
+    const listaFornecedores = ['QUARTT', 'CNN', 'AG', 'GOLD'];
 
-    body.innerHTML = filtered.map(p => `
-        <tr>
-            <td><strong>${p.id}</strong></td>
-            <td><small>${p.name}</small></td>
-            ${suppliers.map(s => {
-                const key = `${p.id}_${s}`;
-                const val = db_precos[key] || '';
-                return `<td><input type="number" step="0.01" class="input-price" 
-                        style="width: 70px; padding: 4px; border-radius: 4px; border: 1px solid var(--border);"
-                        value="${val}" onchange="manualPriceUpdate('${p.id}', '${s}', this.value)"></td>`;
-            }).join('')}
-        </tr>
-    `).join('');
+    // Filtra os produtos com base na busca e na categoria
+    const produtosFiltrados = db_produtos.filter(p => {
+        const matchesSearch = p.id.toString().includes(termoBusca) || p.name.toLowerCase().includes(termoBusca);
+        const matchesCategory = categoriaSelecionada === 'TODOS' || p.cat === categoriaSelecionada;
+        return matchesSearch && matchesCategory;
+    }).slice(0, 200); // Limite para garantir fluidez na tela
+
+    let tabelaHtml = "";
+    produtosFiltrados.forEach(prod => {
+        tabelaHtml += `
+            <tr>
+                <td><strong>${prod.id}</strong></td>
+                <td><small>${prod.name}</small></td>
+                <td><span class="badge" style="background:#f1f5f9; color:#475569; font-size:10px">${prod.cat}</span></td>
+                ${listaFornecedores.map(forn => {
+                    const chavePreco = `${prod.id}_${forn}`;
+                    const valorAtual = db_precos[chavePreco] || '';
+                    return `
+                        <td>
+                            <input type="number" step="0.01" value="${valorAtual}" 
+                                   style="width: 85px; padding: 7px; border-radius: 8px; border: 1px solid var(--border);"
+                                   onchange="updatePriceManual('${prod.id}', '${forn}', this.value)">
+                        </td>
+                    `;
+                }).join('')}
+            </tr>
+        `;
+    });
+
+    tabelaCorpo.innerHTML = tabelaHtml;
 }
 
-function manualPriceUpdate(id, sup, val) {
-    db_precos[`${id}_${sup}`] = parseFloat(val);
+function updatePriceManual(id, fornecedor, novoValor) {
+    db_precos[`${id}_${fornecedor}`] = parseFloat(novoValor);
     localStorage.setItem('mb_db_prices', JSON.stringify(db_precos));
 }
 
-// --- TRIAGEM (LÓGICA) ---
+// --- LÓGICA DE TRIAGEM ---
 function previewProd() {
-    const id = document.getElementById('inpId').value;
-    const sup = document.getElementById('inpSup').value;
-    const prod = db_produtos.find(p => p.id === id);
-    const preco = db_precos[`${id}_${sup}`] || 0;
+    const idDigitado = document.getElementById('inpId').value;
+    const fornecedorSelecionado = document.getElementById('inpSup').value;
+    const produtoEncontrado = db_produtos.find(p => p.id == idDigitado);
+    const precoEstimado = db_precos[`${idDigitado}_${fornecedorSelecionado}`] || 0;
     
-    const preview = document.getElementById('prevName');
-    if(prod) {
-        preview.innerHTML = `${prod.name} | <span style="color:var(--success)">R$ ${preco.toFixed(2)}</span>`;
+    const previewLabel = document.getElementById('prevName');
+    if (produtoEncontrado) {
+        previewLabel.innerHTML = `📦 ${produtoEncontrado.name} | <span style="color:var(--success)">Valor Base: R$ ${precoEstimado.toFixed(2)}</span>`;
     } else {
-        preview.innerText = "";
+        previewLabel.innerText = "";
     }
 }
 
 function addPeça() {
-    const fields = {
-        id: document.getElementById('inpId').value,
-        bar: document.getElementById('inpBar').value,
-        sup: document.getElementById('inpSup').value,
-        date: document.getElementById('inpDate').value,
-        reason: document.getElementById('inpReason').value
-    };
+    const formId = document.getElementById('inpId').value;
+    const formBar = document.getElementById('inpBar').value;
+    const formSup = document.getElementById('inpSup').value;
+    const formData = document.getElementById('inpDate').value;
+    const formReason = document.getElementById('inpReason').value;
 
-    if(!fields.id || !fields.bar || !fields.date) {
-        alert("⚠️ Erro: Preencha ID, Barcode e Data.");
+    // Validações de entrada
+    if (!formId || !formBar || !formData) {
+        alert("Atenção: Os campos ID, Código de Barras e Data são obrigatórios para o registro.");
         return;
     }
 
-    if(lote_pool.some(x => x.barcode === fields.bar)) {
-        alert("⚠️ Erro: Este Código de Barras já está no lote atual.");
+    // Verifica se o barcode já existe no lote para evitar duplicidade
+    const jaExiste = lote_pool.some(item => item.barcode === formBar);
+    if (jaExiste) {
+        alert("Erro: Este Código de Barras já consta no lote atual em aberto.");
         return;
     }
 
-    const prod = db_produtos.find(p => p.id === fields.id);
-    const preco = db_precos[`${fields.id}_${fields.sup}`] || 0;
+    const infoProduto = db_produtos.find(p => p.id == formId);
+    const valorItem = db_precos[`${formId}_${formSup}`] || 0;
+    
+    // Regra de Status baseada no motivo
+    let statusFinal = 'Garantia';
+    if (formReason.includes('Trincada') || formReason.includes('Estufada')) {
+        statusFinal = 'Descarte';
+    }
 
-    // Regra de Negócio: Se trincada ou estufada -> Descarte. Caso contrário -> Garantia.
-    const status = (fields.reason.includes('Trincada') || fields.reason.includes('Estufada')) ? 'Descarte' : 'Garantia';
-
-    const novoItem = {
+    const novoRegistro = {
         uid: Date.now(),
-        ...fields,
-        name: prod ? prod.name : 'NÃO CADASTRADO',
-        price: preco,
-        status: status
+        id: formId,
+        barcode: formBar,
+        supplier: formSup,
+        date: formData,
+        reason: formReason,
+        name: infoProduto ? infoProduto.name : 'PRODUTO NÃO IDENTIFICADO',
+        price: valorItem,
+        status: statusFinal
     };
 
-    lote_pool.push(novoItem);
+    lote_pool.push(novoRegistro);
     localStorage.setItem('mb_lote_pool', JSON.stringify(lote_pool));
     
     updateRecentTable();
-    clearTriagemForm();
-}
-
-function clearTriagemForm() {
+    
+    // Limpeza de campos para agilizar o fluxo
     document.getElementById('inpId').value = "";
     document.getElementById('inpBar').value = "";
+    document.getElementById('inpId').focus();
     document.getElementById('prevName').innerText = "";
 }
 
 function updateRecentTable() {
-    const body = document.getElementById('recentBody');
-    body.innerHTML = lote_pool.slice(-5).reverse().map(i => `
+    const corpoRecentes = document.getElementById('recentBody');
+    if (!corpoRecentes) return;
+
+    const ultimosCinco = lote_pool.slice(-5).reverse();
+    
+    corpoRecentes.innerHTML = ultimosCinco.map(item => `
         <tr>
-            <td><small>${i.name}</small></td>
-            <td>${i.supplier}</td>
-            <td><span class="badge ${i.status === 'Garantia' ? 'badge-garantia' : 'badge-descarte'}">${i.status}</span></td>
-            <td style="font-weight:700">R$ ${i.price.toFixed(2)}</td>
+            <td><small>${item.name}</small></td>
+            <td><strong>${item.supplier}</strong></td>
+            <td><span class="badge ${item.status === 'Garantia' ? 'badge-garantia' : 'badge-descarte'}">${item.status}</span></td>
+            <td style="font-weight:800">R$ ${item.price.toFixed(2)}</td>
         </tr>
     `).join('');
 }
 
-// --- DASHBOARD (KPIs) ---
+// --- DASHBOARD E ANALYTICS ---
 function renderDashboard() {
-    const total = lote_pool.length;
-    const garItems = lote_pool.filter(x => x.status === 'Garantia');
-    const garValue = garItems.reduce((acc, curr) => acc + curr.price, 0);
-    const totalValue = lote_pool.reduce((acc, curr) => acc + curr.price, 0);
-    const ticketMedio = total > 0 ? totalValue / total : 0;
-    const taxaRec = total > 0 ? (garItems.length / total) * 100 : 0;
+    const totalItens = lote_pool.length;
+    const itensGarantia = lote_pool.filter(x => x.status === 'Garantia');
+    const itensDescarte = lote_pool.filter(x => x.status === 'Descarte');
+    
+    const valorGarantia = itensGarantia.reduce((acc, curr) => acc + curr.price, 0);
+    const valorTotalLote = lote_pool.reduce((acc, curr) => acc + curr.price, 0);
+    
+    const taxaDescarte = totalItens > 0 ? (itensDescarte.length / totalItens) * 100 : 0;
+    const ticketMedio = totalItens > 0 ? valorTotalLote / totalItens : 0;
 
-    document.getElementById('statTotal').innerText = total;
-    document.getElementById('statGarValue').innerText = `R$ ${garValue.toLocaleString('pt-BR', {minimumFractionDigits: 2})}`;
+    document.getElementById('statTotal').innerText = totalItens;
+    document.getElementById('statGarValue').innerText = `R$ ${valorGarantia.toLocaleString('pt-BR', {minimumFractionDigits: 2})}`;
     document.getElementById('statAvg').innerText = `R$ ${ticketMedio.toFixed(2)}`;
-    document.getElementById('statRec').innerText = `${taxaRec.toFixed(1)}%`;
+    document.getElementById('statDesRate').innerText = `${taxaDescarte.toFixed(1)}%`;
 
     renderCharts();
 }
 
 function renderCharts() {
-    const ctxVol = document.getElementById('chartVol').getContext('2d');
-    const ctxCash = document.getElementById('chartCash').getContext('2d');
+    const canvasVolume = document.getElementById('chartVol').getContext('2d');
+    const canvasFinanceiro = document.getElementById('chartCash').getContext('2d');
     
-    if(active_charts.vol) active_charts.vol.destroy();
-    if(active_charts.cash) active_charts.cash.destroy();
+    if (active_charts.vol) active_charts.vol.destroy();
+    if (active_charts.cash) active_charts.cash.destroy();
 
-    const sups = ['QUARTT', 'CNN', 'AG', 'GOLD'];
-    const colors = ['#2563eb', '#16a34a', '#dc2626', '#f59e0b'];
+    const fornecedoresArr = ['QUARTT', 'CNN', 'AG', 'GOLD'];
+    const coresDashboard = ['#2563eb', '#16a34a', '#dc2626', '#f59e0b'];
 
-    active_charts.vol = new Chart(ctxVol, {
+    active_charts.vol = new Chart(canvasVolume, {
         type: 'doughnut',
         data: {
-            labels: sups,
+            labels: fornecedoresArr,
             datasets: [{
-                data: sups.map(s => lote_pool.filter(x => x.supplier === s).length),
-                backgroundColor: colors
+                data: fornecedoresArr.map(s => lote_pool.filter(x => x.supplier === s).length),
+                backgroundColor: coresDashboard
             }]
+        },
+        options: {
+            plugins: { legend: { position: 'bottom' } }
         }
     });
 
-    active_charts.cash = new Chart(ctxCash, {
+    active_charts.cash = new Chart(canvasFinanceiro, {
         type: 'bar',
         data: {
-            labels: sups,
+            labels: fornecedoresArr,
             datasets: [
-                { 
-                    label: 'Garantia (R$)', 
-                    data: sups.map(s => lote_pool.filter(x => x.supplier === s && x.status === 'Garantia').reduce((a,b)=>a+b.price, 0)),
+                {
+                    label: 'Garantia (R$)',
+                    data: fornecedoresArr.map(s => lote_pool.filter(x => x.supplier === s && x.status === 'Garantia').reduce((a,b) => a + b.price, 0)),
                     backgroundColor: '#16a34a'
                 },
-                { 
-                    label: 'Descarte (R$)', 
-                    data: sups.map(s => lote_pool.filter(x => x.supplier === s && x.status === 'Descarte').reduce((a,b)=>a+b.price, 0)),
+                {
+                    label: 'Descarte (R$)',
+                    data: fornecedoresArr.map(s => lote_pool.filter(x => x.supplier === s && x.status === 'Descarte').reduce((a,b) => a + b.price, 0)),
                     backgroundColor: '#dc2626'
                 }
             ]
-        },
-        options: { responsive: true, scales: { y: { beginAtZero: true } } }
+        }
     });
 }
 
-// --- LOTE E EXPORTAÇÃO (FORMATO PREMIUM) ---
+// --- EXPORTAÇÃO E EXCEL PREMIUM ---
 function renderLoteTable() {
-    const body = document.getElementById('loteBody');
-    body.innerHTML = lote_pool.slice().reverse().map(i => `
+    const corpoLote = document.getElementById('loteBody');
+    if (!corpoLote) return;
+
+    const loteOrdenado = lote_pool.slice().reverse();
+    
+    corpoLote.innerHTML = loteOrdenado.map(item => `
         <tr>
-            <td><strong>${i.supplier}</strong></td>
-            <td><small>${i.id}</small><br>${i.name}</td>
-            <td><code>${i.barcode}</code></td>
-            <td><span class="badge ${i.status === 'Garantia' ? 'badge-garantia' : 'badge-descarte'}">${i.status}</span></td>
-            <td><small>${i.reason}</small></td>
-            <td><button class="btn btn-outline" style="padding: 5px;" onclick="removeFromLote(${i.uid})">🗑️</button></td>
+            <td><strong>${item.supplier}</strong></td>
+            <td><small>${item.id}</small><br>${item.name}</td>
+            <td><code>${item.barcode}</code></td>
+            <td><span class="badge ${item.status === 'Garantia' ? 'badge-garantia' : 'badge-descarte'}">${item.status}</span></td>
+            <td><small>${item.reason}</small></td>
+            <td>
+                <button class="btn btn-outline" style="padding:8px" onclick="removeLoteItem(${item.uid})">
+                    🗑️ Remover
+                </button>
+            </td>
         </tr>
     `).join('');
 }
 
-function removeFromLote(uid) {
-    lote_pool = lote_pool.filter(x => x.uid !== uid);
-    localStorage.setItem('mb_lote_pool', JSON.stringify(lote_pool));
-    renderLoteTable();
+function removeLoteItem(uniqueId) {
+    if (confirm("Deseja realmente remover este item do lote em aberto?")) {
+        lote_pool = lote_pool.filter(item => item.uid !== uniqueId);
+        localStorage.setItem('mb_lote_pool', JSON.stringify(lote_pool));
+        renderLoteTable();
+    }
 }
 
-async function exportFiltered(status) {
-    const sup = document.getElementById('selSup').value;
-    const data = lote_pool.filter(x => x.supplier === sup && x.status === status);
-    if(data.length === 0) return alert("Nada para exportar com esses filtros.");
+async function exportFiltered(statusFiltro) {
+    const fornecedorSelecionado = document.getElementById('selSup').value;
+    const dadosFiltrados = lote_pool.filter(x => x.supplier === fornecedorSelecionado && x.status === statusFiltro);
     
-    await generateExcel(`TRIAGEM_${sup}_${status.toUpperCase()}`, data);
+    if (dadosFiltrados.length === 0) {
+        alert("Nenhum item encontrado para os filtros selecionados.");
+        return;
+    }
+
+    await generateExcel(`TRIAGEM_${fornecedorSelecionado}_${statusFiltro.toUpperCase()}`, dadosFiltrados);
 }
 
 async function exportGeral() {
-    if(lote_pool.length === 0) return alert("O lote está vazio.");
-    await generateExcel(`LOTE_GERAL_CONSOLIDADO`, lote_pool);
+    if (lote_pool.length === 0) {
+        alert("Não há itens no lote para exportar.");
+        return;
+    }
+    await generateExcel(`FECHAMENTO_LOTE_GERAL`, lote_pool);
 }
 
-async function generateExcel(baseName, data) {
+async function generateExcel(nomeArquivoBase, listaDados) {
     const workbook = new ExcelJS.Workbook();
-    const worksheet = workbook.addWorksheet('Relatório de Peças');
+    const worksheet = workbook.addWorksheet('Relatório de Triagem');
 
-    // Definição de Colunas
+    // Cabeçalhos das Colunas
     worksheet.columns = [
-        { header: 'FORNECEDOR', key: 'supplier', width: 15 },
-        { header: 'ID PRODUTO', key: 'id', width: 15 },
-        { header: 'NOME DO PRODUTO', key: 'name', width: 40 },
-        { header: 'CÓDIGO DE BARRAS', key: 'barcode', width: 25 },
-        { header: 'STATUS', key: 'status', width: 15 },
-        { header: 'MOTIVO', key: 'reason', width: 25 },
-        { header: 'VALOR UNIT.', key: 'price', width: 15 },
-        { header: 'DATA ENTRADA', key: 'date', width: 15 }
+        { header: 'FORNECEDOR', key: 'supplier', width: 18 },
+        { header: 'SKU / ID', key: 'id', width: 15 },
+        { header: 'DESCRIÇÃO DO PRODUTO', key: 'name', width: 50 },
+        { header: 'BARCODE', key: 'barcode', width: 25 },
+        { header: 'STATUS ANÁLISE', key: 'status', width: 18 },
+        { header: 'MOTIVO DA TRIAGEM', key: 'reason', width: 30 },
+        { header: 'VALOR UNITÁRIO', key: 'price', width: 18 },
+        { header: 'DATA REGISTRO', key: 'date', width: 15 }
     ];
 
-    // Estilização Profissional
+    // Estilo do Cabeçalho
+    worksheet.getRow(1).height = 35;
     worksheet.getRow(1).eachCell(cell => {
-        cell.font = { bold: true, color: { argb: 'FFFFFF' } };
+        cell.font = { bold: true, color: { argb: 'FFFFFF' }, size: 12 };
         cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: '0F172A' } };
-        cell.alignment = { horizontal: 'center' };
+        cell.alignment = { horizontal: 'center', vertical: 'middle' };
     });
 
-    data.forEach((item, index) => {
+    // Adiciona as Linhas com Zebra Striping
+    listaDados.forEach((item, idx) => {
         const row = worksheet.addRow(item);
-        // Zebra Stripes
-        if(index % 2 === 0) row.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'F8FAFC' } };
+        row.height = 28;
+        row.alignment = { vertical: 'middle' };
         
-        // Formatação de Preço
+        if (idx % 2 === 0) {
+            row.eachCell(c => {
+                c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'F8FAFC' } };
+            });
+        }
+
+        // Formatação Condicional de Status no Excel
+        const cellStatus = row.getCell('status');
+        if (item.status === 'Garantia') {
+            cellStatus.font = { bold: true, color: { argb: '16A34A' } };
+        } else {
+            cellStatus.font = { bold: true, color: { argb: 'DC2626' } };
+        }
+        
+        // Formata Moeda
         row.getCell('price').numFmt = '"R$ "#,##0.00';
-        
-        // Cores no Status
-        const statusCell = row.getCell('status');
-        if(item.status === 'Garantia') statusCell.font = { color: { argb: '16A34A' }, bold: true };
-        else statusCell.font = { color: { argb: 'DC2626' }, bold: true };
     });
 
-    // Gerar Buffer e Salvar
+    // Salva o Arquivo
     const buffer = await workbook.xlsx.writeBuffer();
-    const fileName = `${baseName}_${new Date().toISOString().split('T')[0]}.xlsx`;
-    saveAs(new Blob([buffer]), fileName);
+    const nomeFinal = `${nomeArquivoBase}_${new Date().toISOString().split('T')[0]}.xlsx`;
+    saveAs(new Blob([buffer]), nomeFinal);
 
-    // Salvar no Cofre e Limpar Lote
-    export_vault.push({ name: fileName, date: new Date().toLocaleString(), count: data.length });
+    // Registro no Cofre
+    export_vault.push({
+        name: nomeFinal,
+        date: new Date().toLocaleString(),
+        count: listaDados.length
+    });
     localStorage.setItem('mb_vault', JSON.stringify(export_vault));
 
-    if(confirm("Arquivo gerado! Deseja remover estes itens do lote em aberto?")) {
-        const exportedUids = data.map(d => d.uid);
-        lote_pool = lote_pool.filter(p => !exportedUids.includes(p.uid));
+    if (confirm("Arquivo gerado com sucesso! Deseja limpar estes itens exportados do lote em aberto para manter o sistema limpo?")) {
+        const uidsExportados = listaDados.map(d => d.uid);
+        lote_pool = lote_pool.filter(p => !uidsExportados.includes(p.uid));
         localStorage.setItem('mb_lote_pool', JSON.stringify(lote_pool));
         renderLoteTable();
     }
 }
 
 function renderVault() {
-    const body = document.getElementById('vaultBody');
-    body.innerHTML = export_vault.slice().reverse().map(v => `
-        <div class="card" style="display:flex; justify-content:space-between; align-items:center; padding:1.25rem;">
+    const containerVault = document.getElementById('vaultBody');
+    if (!containerVault) return;
+
+    const vaultInvertido = export_vault.slice().reverse();
+    
+    containerVault.innerHTML = vaultInvertido.map(v => `
+        <div class="card" style="display:flex; justify-content:space-between; align-items:center; padding:1.8rem; margin-bottom:15px">
             <div>
-                <strong>${v.name}</strong><br>
-                <small style="color:#64748b">${v.date} — ${v.count} itens processados</small>
+                <strong style="font-size:1.1rem">${v.name}</strong><br>
+                <small style="color:#64748b">${v.date} — Contém ${v.count} itens processados</small>
             </div>
-            <span class="badge badge-garantia" style="background:#f1f5f9; color:var(--navy-dark); border:none;">Arquivado</span>
+            <span class="badge" style="background:#f1f5f9; color:var(--navy-dark); border:none">💾 ARQUIVADO</span>
         </div>
     `).join('');
 }
