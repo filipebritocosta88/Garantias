@@ -3,141 +3,90 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Triagem de Peças - Dashboard Profissional</title>
+    <title>Triagem Profissional de Peças</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.3.0/exceljs.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     
     <style>
         :root {
-            --navy-dark: #0f172a;
-            --navy-light: #1e293b;
-            --primary: #2563eb;
-            --success: #16a34a;
-            --danger: #dc2626;
-            --border: #e2e8f0;
-            --bg: #f8fafc;
+            --navy-dark: #0f172a; --navy-light: #1e293b; --primary: #2563eb;
+            --success: #16a34a; --danger: #dc2626; --border: #e2e8f0; --bg: #f8fafc;
             --sidebar-width: 260px;
         }
 
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--navy-light); display: flex; min-height: 100vh; overflow: hidden; }
 
-        /* Sidebar Estilizada */
-        aside {
-            width: var(--sidebar-width);
-            background: var(--navy-dark);
-            color: white;
-            display: flex;
-            flex-direction: column;
-            flex-shrink: 0;
-            z-index: 100;
-        }
-
-        .sidebar-header {
-            padding: 2rem 1.5rem;
-            text-align: center;
-            border-bottom: 1px solid #334155;
-        }
-
-        .sidebar-header h2 { font-size: 1.2rem; font-weight: 700; letter-spacing: 1px; color: #f1f5f9; }
-
+        /* SIDEBAR */
+        aside { width: var(--sidebar-width); background: var(--navy-dark); color: white; display: flex; flex-direction: column; flex-shrink: 0; z-index: 100; box-shadow: 4px 0 10px rgba(0,0,0,0.1); }
+        .sidebar-header { padding: 2rem 1.5rem; text-align: center; border-bottom: 1px solid #334155; }
+        .sidebar-header h2 { font-size: 1.1rem; letter-spacing: 1px; color: #f1f5f9; text-transform: uppercase; }
+        
         nav { flex-grow: 1; padding: 1.5rem 0.75rem; }
-
-        .nav-btn {
-            width: 100%;
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            padding: 0.85rem 1rem;
-            margin-bottom: 0.5rem;
-            border: none;
-            background: transparent;
-            color: #94a3b8;
-            cursor: pointer;
-            border-radius: 8px;
-            font-weight: 500;
-            font-size: 0.95rem;
-            transition: all 0.2s ease;
-            text-align: left;
-        }
-
+        .nav-btn { width: 100%; display: flex; align-items: center; gap: 12px; padding: 0.85rem 1rem; margin-bottom: 0.5rem; border: none; background: transparent; color: #94a3b8; cursor: pointer; border-radius: 8px; font-weight: 500; font-size: 0.9rem; transition: 0.2s; text-align: left; }
         .nav-btn:hover { background: #1e293b; color: white; }
-        .nav-btn.active { background: var(--primary); color: white; box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3); }
+        .nav-btn.active { background: var(--primary); color: white; box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2); }
 
-        /* Main Content Area */
-        main {
-            flex-grow: 1;
-            height: 100vh;
-            overflow-y: auto;
-            padding: 2rem;
-        }
-
+        /* MAIN CONTENT */
+        main { flex-grow: 1; height: 100vh; overflow-y: auto; padding: 2rem; }
         .container { max-width: 1100px; margin: 0 auto; }
-
         .tab-content { display: none; animation: fadeIn 0.3s ease; }
         .tab-content.active { display: block; }
 
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
-        /* Componentes de UI */
+        /* CARDS */
         .card { background: white; border-radius: 12px; padding: 1.5rem; box-shadow: 0 1px 3px rgba(0,0,0,0.1); margin-bottom: 1.5rem; border: 1px solid var(--border); }
-        h3 { margin-bottom: 1.2rem; font-size: 1.1rem; color: var(--navy-dark); display: flex; align-items: center; gap: 8px; }
+        h3 { margin-bottom: 1.2rem; font-size: 1.1rem; color: var(--navy-dark); display: flex; align-items: center; gap: 10px; }
 
-        .grid-inputs { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1rem; }
-        .form-group { display: flex; flex-direction: column; gap: 0.4rem; }
+        .grid-inputs { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1.2rem; }
+        .form-group { display: flex; flex-direction: column; gap: 0.5rem; }
         label { font-size: 0.75rem; font-weight: 700; color: #64748b; text-transform: uppercase; }
-        
-        input, select { padding: 0.7rem; border: 1px solid var(--border); border-radius: 6px; font-size: 0.9rem; transition: 0.2s; }
+        input, select { padding: 0.75rem; border: 1px solid var(--border); border-radius: 8px; font-size: 0.9rem; transition: 0.2s; }
         input:focus { border-color: var(--primary); outline: none; box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1); }
 
-        /* Estilo Dropzone */
-        .dropzone { border: 2px dashed #cbd5e1; padding: 1rem; text-align: center; border-radius: 10px; cursor: pointer; background: #f8fafc; margin-bottom: 1.5rem; }
-        .dropzone:hover { border-color: var(--primary); }
+        /* DASHBOARD / CHARTS */
+        .charts-container { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-top: 1rem; }
+        .chart-card { min-height: 350px; display: flex; flex-direction: column; align-items: center; }
 
-        /* Botões */
-        .btn { padding: 0.7rem 1.2rem; border: none; border-radius: 6px; font-weight: 600; cursor: pointer; transition: 0.2s; font-size: 0.9rem; }
-        .btn-primary { background: var(--primary); color: white; width: 100%; margin-top: 1rem; }
+        /* BOTÕES */
+        .btn { padding: 0.75rem 1.5rem; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; transition: 0.2s; font-size: 0.9rem; display: inline-flex; align-items: center; gap: 8px; justify-content: center; }
+        .btn-primary { background: var(--primary); color: white; width: 100%; margin-top: 1.5rem; }
         .btn-success { background: var(--success); color: white; }
         .btn-danger { background: var(--danger); color: white; }
+        .btn-edit { background: #f1f5f9; color: var(--navy-light); padding: 0.4rem 0.8rem; font-size: 0.8rem; }
 
-        /* Tabelas Profissionais */
-        table { width: 100%; border-collapse: collapse; margin-top: 0.5rem; font-size: 0.85rem; }
-        th { background: #f8fafc; padding: 0.8rem; text-align: left; color: #64748b; border-bottom: 2px solid var(--border); }
-        td { padding: 0.8rem; border-bottom: 1px solid var(--border); vertical-align: middle; }
+        /* TABELAS */
+        table { width: 100%; border-collapse: collapse; margin-top: 0.5rem; }
+        th { background: #f8fafc; padding: 1rem; text-align: left; font-size: 0.8rem; color: #64748b; border-bottom: 2px solid var(--border); text-transform: uppercase; }
+        td { padding: 1rem; border-bottom: 1px solid var(--border); font-size: 0.9rem; }
         
-        .badge { padding: 3px 8px; border-radius: 4px; font-size: 10px; font-weight: 700; text-transform: uppercase; }
+        .badge { padding: 4px 10px; border-radius: 6px; font-size: 11px; font-weight: 700; text-transform: uppercase; }
         .badge-garantia { background: #dcfce7; color: #15803d; }
         .badge-descarte { background: #fee2e2; color: #b91c1c; }
+        .price-text { font-weight: 700; color: var(--success); }
 
-        .product-preview { font-size: 0.8rem; color: var(--primary); font-weight: 600; min-height: 1.2rem; margin-top: 2px; }
-
-        /* Cofre de Arquivos */
-        .vault-item { display: flex; justify-content: space-between; align-items: center; padding: 1rem; border: 1px solid var(--border); border-radius: 8px; margin-bottom: 0.7rem; background: #fff; }
+        /* DROPAREA */
+        .drop-zone { border: 2px dashed #cbd5e1; padding: 1.5rem; text-align: center; border-radius: 12px; background: #f8fafc; cursor: pointer; margin-bottom: 1.5rem; transition: 0.3s; }
+        .drop-zone:hover { border-color: var(--primary); background: #eff6ff; }
     </style>
 </head>
 <body>
 
 <aside>
     <div class="sidebar-header">
-        <h2>TRIAGEM</h2>
-        <p style="font-size: 0.7rem; color: #94a3b8; margin-top: 5px;">Sistema de Garantias</p>
+        <h2>Triagem de Peças</h2>
     </div>
     <nav>
-        <button class="nav-btn active" onclick="switchTab('triagem')">
-            <span>🔍</span> Nova Triagem
-        </button>
-        <button class="nav-btn" onclick="switchTab('historico')">
-            <span>📋</span> Lote em Aberto
-        </button>
-        <button class="nav-btn" onclick="switchTab('arquivados')">
-            <span>🔒</span> Cofre de Exportação
-        </button>
+        <button class="nav-btn active" onclick="switchTab('triagem')"><span>🔍</span> Nova Triagem</button>
+        <button class="nav-btn" onclick="switchTab('dashboard')"><span>📊</span> Dashboard / KPIs</button>
+        <button class="nav-btn" onclick="switchTab('precos')"><span>💰</span> Gestão de Preços</button>
+        <button class="nav-btn" onclick="switchTab('historico')"><span>📋</span> Lote em Aberto</button>
+        <button class="nav-btn" onclick="switchTab('arquivados')"><span>🔒</span> Cofre de Arquivos</button>
     </nav>
-    <div style="padding: 1.5rem; font-size: 0.7rem; color: #475569; border-top: 1px solid #334155;">
-        Versão 2.0.26 - Estável
-    </div>
 </aside>
 
 <main>
@@ -145,24 +94,24 @@
         
         <div id="triagem" class="tab-content active">
             <div class="card">
-                <div class="dropzone" onclick="document.getElementById('csvFile').click()">
-                    <strong id="dbStatus">📥 Importar Banco de Dados</strong>
+                <div class="drop-zone" onclick="document.getElementById('csvFile').click()">
+                    <strong id="dbStatus">📂 Carregar Banco de Dados (CSV)</strong>
                     <input type="file" id="csvFile" accept=".csv" hidden>
                 </div>
 
                 <div class="grid-inputs">
                     <div class="form-group">
                         <label>ID do Produto</label>
-                        <input type="text" id="productId" placeholder="Bipe o ID" oninput="previewProduct()">
-                        <div id="productNamePreview" class="product-preview"></div>
+                        <input type="text" id="productId" placeholder="Digite ou Bipe o ID" oninput="previewProduct()">
+                        <div id="previewName" style="font-size: 0.8rem; color: var(--primary); font-weight: 600; margin-top: 5px; min-height: 1.2rem;"></div>
                     </div>
                     <div class="form-group">
-                        <label>Código de Barras</label>
+                        <label>Cód. Barras (Único)</label>
                         <input type="text" id="barcode" placeholder="Bipe o Barcode">
                     </div>
                     <div class="form-group">
                         <label>Fornecedor</label>
-                        <select id="supplier">
+                        <select id="supplier" onchange="previewProduct()">
                             <option value="QUARTT">QUARTT</option>
                             <option value="AG">AG</option>
                             <option value="CNN">CNN</option>
@@ -171,64 +120,85 @@
                         </select>
                     </div>
                     <div class="form-group">
-                        <label>Data Compra</label>
+                        <label>Data da Compra</label>
                         <input type="date" id="purchaseDate">
                     </div>
                     <div class="form-group">
-                        <label>Motivo</label>
+                        <label>Motivo do Defeito</label>
                         <select id="reason">
                             <option value="Defeito Técnico">Defeito Técnico</option>
-                            <option value="Baixa amperagem">Baixa amperagem</option>
-                            <option value="Touch intermitente">Touch intermitente</option>
+                            <option value="Baixa amperagem">Baixa amperagem (Garantia)</option>
+                            <option value="Touch intermitente">Touch intermitente (Garantia)</option>
                             <option value="Tela Trincada">Tela Trincada (Descarte)</option>
                             <option value="Bateria Estufada">Bateria Estufada (Descarte)</option>
                         </select>
                     </div>
                 </div>
-                <button class="btn btn-primary" onclick="addItem()">Registrar Peça na Triagem</button>
+                <button class="btn btn-primary" onclick="addItem()">Registrar Item na Triagem</button>
             </div>
 
             <div class="card">
-                <h3>🕒 Últimos 10 Cadastros</h3>
-                <table id="recentTable">
-                    <thead>
-                        <tr>
-                            <th>Fornecedor</th>
-                            <th>Produto</th>
-                            <th>Status</th>
-                        </tr>
-                    </thead>
+                <h3>🕒 Últimos 10 Itens Processados</h3>
+                <table>
+                    <thead><tr><th>Fornecedor</th><th>Produto</th><th>Status</th><th>Valor</th></tr></thead>
                     <tbody id="recentBody"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <div id="dashboard" class="tab-content">
+            <div class="charts-container">
+                <div class="card chart-card">
+                    <h3>Volume por Fornecedor (Peças)</h3>
+                    <canvas id="chartPie"></canvas>
+                </div>
+                <div class="card chart-card">
+                    <h3>Impacto Financeiro (R$)</h3>
+                    <canvas id="chartBar"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <div id="precos" class="tab-content">
+            <div class="card">
+                <h3>💰 Vincular Preço por Fornecedor</h3>
+                <div class="grid-inputs">
+                    <input type="text" id="priceId" placeholder="ID do Produto">
+                    <select id="priceSupplier">
+                        <option value="QUARTT">QUARTT</option>
+                        <option value="AG">AG</option>
+                        <option value="CNN">CNN</option>
+                        <option value="GOLD">GOLD</option>
+                        <option value="IMPORTADA">IMPORTADA</option>
+                    </select>
+                    <input type="number" id="priceValue" placeholder="Valor (Ex: 150.00)">
+                    <button class="btn btn-success" onclick="savePrice()">Vincular Valor</button>
+                </div>
+                <table style="margin-top: 2rem;">
+                    <thead><tr><th>ID</th><th>Fornecedor</th><th>Preço</th><th>Ação</th></tr></thead>
+                    <tbody id="priceListBody"></tbody>
                 </table>
             </div>
         </div>
 
         <div id="historico" class="tab-content">
             <div class="card">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
-                    <h3>📋 Itens para Exportar</h3>
-                    <div style="display: flex; gap: 8px;">
-                        <select id="filterSupplier" style="padding: 0.4rem;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+                    <h3>📋 Gerenciar Lote Atual</h3>
+                    <div style="display: flex; gap: 10px;">
+                        <select id="exportFilter" style="width: 150px;">
                             <option value="QUARTT">QUARTT</option>
                             <option value="AG">AG</option>
                             <option value="CNN">CNN</option>
                             <option value="GOLD">GOLD</option>
                             <option value="IMPORTADA">IMPORTADA</option>
                         </select>
-                        <button class="btn btn-success" onclick="exportData('Garantia')">Exportar Garantia</button>
-                        <button class="btn btn-danger" onclick="exportData('Descarte')">Exportar Descarte</button>
+                        <button class="btn btn-success" onclick="exportExcel('Garantia')">Exportar Garantia</button>
+                        <button class="btn btn-danger" onclick="exportExcel('Descarte')">Exportar Descarte</button>
                     </div>
                 </div>
                 <table id="fullTable">
-                    <thead>
-                        <tr>
-                            <th>Fornecedor</th>
-                            <th>Produto</th>
-                            <th>Barcode</th>
-                            <th>Status</th>
-                            <th>Ação</th>
-                        </tr>
-                    </thead>
+                    <thead><tr><th>Fornecedor</th><th>Produto</th><th>Barcode</th><th>Status</th><th>Ações</th></tr></thead>
                     <tbody id="fullBody"></tbody>
                 </table>
             </div>
@@ -236,8 +206,8 @@
 
         <div id="arquivados" class="tab-content">
             <div class="card">
-                <h3>🔒 Histórico de Arquivos Gerados</h3>
-                <div id="vaultList"></div>
+                <h3>🔒 Cofre de Relatórios Exportados</h3>
+                <div id="vaultContainer"></div>
             </div>
         </div>
 
