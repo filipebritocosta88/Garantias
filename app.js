@@ -1,185 +1,183 @@
-// --- ESTADO GLOBAL ---
+// --- DATABASE & STATE ---
 let db_master = JSON.parse(localStorage.getItem('g_master')) || [];
 let db_precos = JSON.parse(localStorage.getItem('g_precos')) || {}; 
 let lote = JSON.parse(localStorage.getItem('g_lote')) || [];
-let vault = JSON.parse(localStorage.getItem('g_vault')) || [];
-let current_sup_price = "";
-let chart = null;
+let cofre = JSON.parse(localStorage.getItem('g_cofre')) || [];
+let current_import_sup = "";
+let myChart = null;
 
 // --- NAVEGAÇÃO ---
 function switchTab(tabId) {
     document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
     document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
     document.getElementById(tabId).classList.add('active');
-    const btn = document.querySelector(`button[onclick="switchTab('${tabId}')"]`);
-    if(btn) btn.classList.add('active');
+    document.querySelector(`button[onclick="switchTab('${tabId}')"]`).classList.add('active');
 
     if(tabId === 'dashboard') renderDashboard();
-    if(tabId === 'precos') renderPrice();
-    if(tabId === 'lote') renderLote();
+    if(tabId === 'precos') renderPriceTable();
+    if(tabId === 'lote') renderLoteTable();
     if(tabId === 'cofre') renderVault();
     if(tabId === 'triagem') renderRecent();
 }
 
-// --- BANCO MASTER ---
+// --- IMPORTAÇÃO BANCO MASTER ---
 function importMaster(input) {
     if(!input.files[0]) return;
     Papa.parse(input.files[0], {
         header: true,
+        delimiter: ";",
+        skipEmptyLines: true,
         complete: function(res) {
             db_master = res.data.map(r => ({
-                id: r['ID Produto'],
-                cat: r['Categoria de Produto'],
-                sub: r['Subcategoria de Produto'],
-                name: r['Produto']
+                id: r['id Produto'] || r['id'],
+                cat: r['Categoria de Produto'] || r['categoria'],
+                sub: r['Subcategoria de Produto'] || r['sub'],
+                name: r['Produto'] || r['nome']
             })).filter(x => x.id);
             localStorage.setItem('g_master', JSON.stringify(db_master));
-            updateSelects();
-            alert("Banco Master Carregado!");
+            updateCategoryFilters();
+            alert("Banco Master atualizado com " + db_master.length + " produtos.");
+            location.reload();
         }
     });
 }
 
-function updateSelects() {
+function updateCategoryFilters() {
     const cats = [...new Set(db_master.map(x => x.cat))];
-    const html = `<option value="">Todas Categorias</option>` + cats.map(c => `<option value="${c}">${c}</option>`).join('');
-    document.getElementById('filterCatPrice').innerHTML = html;
-    document.getElementById('filterCatLote').innerHTML = html;
+    const options = `<option value="">Todas Categorias</option>` + cats.map(c => `<option value="${c}">${c}</option>`).join('');
+    document.getElementById('filterCatPrice').innerHTML = options;
+    document.getElementById('filterCatLote').innerHTML = options;
 }
 
-// --- LOGICA DE GARANTIA INTELIGENTE ---
+// --- LOGICA DE TRIAGEM ---
 function previewProd() {
     const id = document.getElementById('inpId').value;
     const sup = document.getElementById('inpSup').value;
     const prod = db_master.find(p => p.id == id);
-    const info = document.getElementById('prevInfo');
+    const div = document.getElementById('prevInfo');
     
     if(prod) {
         const preco = db_precos[`${id}_${sup}`] || 0;
-        info.innerHTML = `📦 ${prod.name} | 💰 Preço: R$ ${preco.toFixed(2)}`;
+        div.innerHTML = `<b style="color:var(--primary)">📦 ${prod.name}</b> <br> 
+                         <span style="color:#64748b">Categoria: ${prod.cat} | Preço ${sup}: R$ ${preco.toFixed(2)}</span>`;
     } else {
-        info.innerHTML = "";
+        div.innerHTML = "";
     }
 }
 
 function addItem() {
-    const id = document.getElementById('inpId').value;
-    const bar = document.getElementById('inpBar').value;
-    const sup = document.getElementById('inpSup').value;
-    const date = document.getElementById('inpDate').value;
-    const reason = document.getElementById('inpReason').value;
-
-    if(!id || !bar || !date) return alert("Preencha os campos!");
-    if(lote.some(i => i.bar === bar)) return alert("Código de Barras já existe!");
-
-    const prod = db_master.find(p => p.id == id);
-    if(!prod) return alert("Produto não encontrado no Master!");
-
-    // Regra de Inteligência
-    let status = "Garantia";
-    if(["Tela trincada", "Bateria estufada", "Flex Rasgado"].includes(reason)) {
-        status = "Descarte";
-    }
-
-    // Validação de Tempo (Bateria 6 meses, Tela 12 meses)
-    const venda = new Date(date);
-    const hoje = new Date();
-    const mesesDiff = (hoje.getFullYear() - venda.getFullYear()) * 12 + hoje.getMonth() - venda.getMonth();
-
-    if(prod.cat.toLowerCase().includes('bateria') && mesesDiff > 6) status = "Descarte";
-    if(prod.cat.toLowerCase().includes('tela') && mesesDiff > 12) status = "Descarte";
-
-    const item = {
-        uid: Date.now(),
-        id, bar, sup, date, reason, status,
-        name: prod.name,
-        cat: prod.cat,
-        price: db_precos[`${id}_${sup}`] || 0
+    const fields = {
+        id: document.getElementById('inpId').value,
+        bar: document.getElementById('inpBar').value,
+        sup: document.getElementById('inpSup').value,
+        date: document.getElementById('inpDate').value,
+        reason: document.getElementById('inpReason').value
     };
 
-    lote.push(item);
+    if(!fields.id || !fields.bar || !fields.date) return alert("Preencha todos os campos!");
+    if(lote.some(i => i.bar === fields.bar)) return alert("Este Código de Barras já existe no lote!");
+
+    const prod = db_master.find(p => p.id == fields.id);
+    if(!prod) return alert("SKU não encontrado no Banco Master!");
+
+    // INTELIGÊNCIA DE GARANTIA
+    let status = "Garantia";
+    const motivosDescarte = ["Tela trincada", "Bateria estufada", "Flex Rasgado"];
+    if(motivosDescarte.includes(fields.reason)) status = "Descarte";
+
+    // Regra de Tempo
+    const dtVenda = new Date(fields.date);
+    const hoje = new Date();
+    const meses = (hoje.getFullYear() - dtVenda.getFullYear()) * 12 + (hoje.getMonth() - dtVenda.getMonth());
+
+    if(prod.cat.toLowerCase().includes("bateria") && meses > 6) status = "Descarte";
+    if(prod.cat.toLowerCase().includes("tela") && meses > 12) status = "Descarte";
+
+    lote.push({
+        uid: Date.now(),
+        ...fields,
+        name: prod.name,
+        cat: prod.cat,
+        status: status,
+        price: db_precos[`${fields.id}_${fields.sup}`] || 0
+    });
+
     localStorage.setItem('g_lote', JSON.stringify(lote));
+    alert("Item registrado como " + status);
     renderRecent();
-    alert("Registrado com sucesso!");
     document.getElementById('inpId').value = "";
     document.getElementById('inpBar').value = "";
+    document.getElementById('inpId').focus();
 }
 
-// --- RENDERIZADORES ---
 function renderRecent() {
     const body = document.getElementById('recentBody');
-    const last10 = lote.slice(-10).reverse();
-    body.innerHTML = last10.map(i => `
+    body.innerHTML = lote.slice(-10).reverse().map(i => `
         <tr>
-            <td>${i.date}</td>
-            <td>${i.id}</td>
-            <td><small>${i.name}</small></td>
-            <td>${i.bar}</td>
-            <td><span class="badge ${i.status === 'Garantia' ? 'badge-garantia' : 'badge-descarte'}">${i.status}</span></td>
+            <td>${i.date}</td><td>${i.id}</td><td><small>${i.name}</small></td><td>${i.bar}</td>
+            <td><span class="badge ${i.status==='Garantia'?'badge-garantia':'badge-descarte'}">${i.status}</span></td>
         </tr>
     `).join('');
 }
 
 // --- GESTÃO DE PREÇOS ---
 function triggerPrice(sup) {
-    current_sup_price = sup;
+    current_import_sup = sup;
     document.getElementById('priceInp').click();
 }
 
-function processPrice(input) {
+function processPriceCsv(input) {
     Papa.parse(input.files[0], {
         header: true,
         complete: function(res) {
             res.data.forEach(r => {
-                const id = r['id'] || r['ID Produto'];
+                const id = r['id'] || r['id Produto'];
                 const val = parseFloat(r['preco'] || r['valor'] || 0);
-                if(id) db_precos[`${id}_${current_sup_price}`] = val;
+                if(id) db_precos[`${id}_${current_import_sup}`] = val;
             });
             localStorage.setItem('g_precos', JSON.stringify(db_precos));
-            renderPrice();
+            renderPriceTable();
+            alert("Preços de " + current_import_sup + " importados.");
         }
     });
 }
 
-function renderPrice() {
+function renderPriceTable() {
     const search = document.getElementById('searchPrice').value.toLowerCase();
     const cat = document.getElementById('filterCatPrice').value;
     const body = document.getElementById('priceBody');
+    const sups = ['QUARTT', 'CNN', 'GOLD', 'AG', 'IMPORTADA'];
 
     const filtered = db_master.filter(p => 
         (p.id.includes(search) || p.name.toLowerCase().includes(search)) &&
         (cat === "" || p.cat === cat)
-    ).slice(0, 50);
+    ).slice(0, 100);
 
     body.innerHTML = filtered.map(p => {
-        const sups = ['QUARTT', 'GOLD', 'AG', 'CNN', 'IMPORTADA'];
-        // Mostra o valor do primeiro fornecedor que tiver preço ou 0
-        const currentVal = db_precos[`${p.id}_QUARTT`] || 0; 
-        return `
-        <tr>
-            <td>${p.id}</td>
-            <td><small>${p.name}</small></td>
-            <td>${p.cat}</td>
-            <td>R$ ${currentVal.toFixed(2)}</td>
-            <td><input type="number" id="manual_${p.id}" style="width:80px"></td>
-            <td><button class="btn btn-primary" onclick="saveManualPrice('${p.id}')">Salvar</button></td>
+        let soma = 0, count = 0;
+        const cols = sups.map(s => {
+            const v = db_precos[`${p.id}_${s}`] || 0;
+            if(v > 0) { soma += v; count++; }
+            return `<td><input type="number" value="${v}" onchange="savePrice('${p.id}','${s}',this.value)" style="width:70px; border:none; background:transparent"></td>`;
+        }).join('');
+        const media = count > 0 ? (soma/count).toFixed(2) : "0.00";
+
+        return `<tr>
+            <td><b>${p.id}</b></td><td><small>${p.name}</small></td><td><small>${p.cat}</small></td>
+            <td style="background:#f1f5f9"><b>R$ ${media}</b></td>
+            ${cols}
+            <td><button class="btn btn-primary" style="padding:5px" onclick="alert('Salvo automaticamente!')">ok</button></td>
         </tr>`;
     }).join('');
 }
 
-function saveManualPrice(id) {
-    const val = parseFloat(document.getElementById(`manual_${id}`).value);
-    if(isNaN(val)) return;
-    // Salva para o fornecedor atualmente selecionado no select da triagem como padrão
-    const sup = document.getElementById('inpSup').value;
-    db_precos[`${id}_${sup}`] = val;
+function savePrice(id, sup, val) {
+    db_precos[`${id}_${sup}`] = parseFloat(val);
     localStorage.setItem('g_precos', JSON.stringify(db_precos));
-    alert("Preço salvo!");
-    renderPrice();
 }
 
 // --- LOTE E EXPORTAÇÃO ---
-function renderLote() {
+function renderLoteTable() {
     const search = document.getElementById('searchLote').value.toLowerCase();
     const cat = document.getElementById('filterCatLote').value;
     const body = document.getElementById('loteBody');
@@ -191,94 +189,108 @@ function renderLote() {
 
     body.innerHTML = filtered.map(i => `
         <tr>
-            <td>${i.sup}</td>
-            <td>${i.cat}</td>
-            <td><small>${i.name}</small></td>
-            <td><input type="text" value="${i.bar}" onchange="updateBarcode(${i.uid}, this.value)"></td>
-            <td>R$ ${i.price.toFixed(2)}</td>
-            <td><span class="badge ${i.status === 'Garantia' ? 'badge-garantia' : 'badge-descarte'}">${i.status}</span></td>
-            <td><button onclick="removeItem(${i.uid})">🗑️</button></td>
+            <td><b>${i.sup}</b></td><td><small>${i.cat}</small></td><td><small>${i.name}</small></td>
+            <td><input type="text" value="${i.bar}" onchange="updateBar(${i.uid}, this.value)" style="border:none; border-bottom:1px solid #ddd"></td>
+            <td><span class="badge ${i.status==='Garantia'?'badge-garantia':'badge-descarte'}">${i.status}</span></td>
+            <td><button class="btn btn-danger" style="padding:5px" onclick="removeLote(${i.uid})">🗑️</button></td>
         </tr>
     `).join('');
 }
 
-function updateBarcode(uid, newVal) {
+function updateBar(uid, val) {
     const idx = lote.findIndex(l => l.uid === uid);
-    lote[idx].bar = newVal;
+    lote[idx].bar = val;
     localStorage.setItem('g_lote', JSON.stringify(lote));
 }
 
+function removeLote(uid) {
+    if(confirm("Remover este item?")) {
+        lote = lote.filter(l => l.uid !== uid);
+        localStorage.setItem('g_lote', JSON.stringify(lote));
+        renderLoteTable();
+    }
+}
+
 async function exportExcel(sup) {
-    const items = lote.filter(i => i.sup === sup);
-    if(items.length === 0) return alert("Sem itens para este fornecedor!");
+    const items = lote.filter(l => l.sup === sup);
+    if(items.length === 0) return alert("Nenhum item deste fornecedor!");
 
     const wb = new ExcelJS.Workbook();
-    const ws = wb.addWorksheet(sup);
+    const ws = wb.addWorksheet('Garantia ' + sup);
 
-    // Header Azul Marinho / Letra Branca
-    const header = ['ID', 'PRODUTO', 'BARCODE', 'CATEGORIA', 'DATA', 'STATUS', 'VALOR'];
-    ws.addRow(header);
+    const headers = ['ID', 'PRODUTO', 'CATEGORIA', 'BARCODE', 'DATA', 'STATUS', 'PREÇO'];
+    ws.addRow(headers);
+
+    // Estilo Cabeçalho Azul Marinho / Branco / Negrito
     ws.getRow(1).eachCell(c => {
         c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: '0F172A' } };
         c.font = { color: { argb: 'FFFFFF' }, bold: true };
     });
 
     items.forEach(i => {
-        ws.addRow([i.id, i.name, i.bar, i.cat, i.date, i.status, i.price]);
+        const row = ws.addRow([i.id, i.name, i.cat, i.bar, i.date, i.status, i.price]);
+        row.font = { bold: true }; // Linhas em negrito conforme pedido
     });
 
-    ws.columns.forEach(column => { column.width = 20; });
+    ws.columns.forEach(column => { column.width = 25; });
 
     const buf = await wb.xlsx.writeBuffer();
-    const fileName = `Garantia_${sup}_${new Date().getTime()}.xlsx`;
+    const fileName = `Garantia_${sup}_${new Date().toLocaleDateString().replace(/\//g,'-')}.xlsx`;
     saveAs(new Blob([buf]), fileName);
 
-    vault.push({ date: new Date().toLocaleString(), name: fileName, sup, count: items.length });
-    localStorage.setItem('g_vault', JSON.stringify(vault));
+    cofre.push({ date: new Date().toLocaleString(), name: fileName, sup: sup, count: items.length, status: "Exportado" });
+    localStorage.setItem('g_cofre', JSON.stringify(cofre));
 }
 
 // --- DASHBOARD ---
 function renderDashboard() {
-    const total = lote.length;
     const g = lote.filter(x => x.status === "Garantia").length;
     const d = lote.filter(x => x.status === "Descarte").length;
     const val = lote.filter(x => x.status === "Garantia").reduce((a,b) => a + b.price, 0);
 
-    document.getElementById('dashTotal').innerText = total;
+    document.getElementById('dashTotal').innerText = lote.length;
     document.getElementById('dashGar').innerText = g;
     document.getElementById('dashDes').innerText = d;
     document.getElementById('dashVal').innerText = `R$ ${val.toFixed(2)}`;
 
-    const ctx = document.getElementById('chartGarantias').getContext('2d');
-    if(chart) chart.destroy();
-    chart = new Chart(ctx, {
+    const ctx = document.getElementById('mainChart').getContext('2d');
+    if(myChart) myChart.destroy();
+    myChart = new Chart(ctx, {
         type: 'bar',
         data: {
-            labels: ['Garantias', 'Descartes'],
+            labels: ['Garantia', 'Descarte'],
             datasets: [{
-                label: 'Volume',
+                label: 'Volume de Itens',
                 data: [g, d],
                 backgroundColor: ['#16a34a', '#dc2626']
             }]
-        }
+        },
+        options: { responsive: true, plugins: { legend: { display: false } } }
     });
 }
 
+// --- COFRE ---
 function renderVault() {
-    const body = document.getElementById('vaultBody');
-    body.innerHTML = vault.map(v => `
+    const fSup = document.getElementById('vaultForn').value;
+    const fStat = document.getElementById('vaultStatus').value;
+    const fDate = document.getElementById('vaultDate').value;
+
+    const filtered = cofre.filter(v => 
+        (fSup === "" || v.sup === fSup) &&
+        (fDate === "" || v.date.includes(fDate.split('-').reverse().join('/')))
+    );
+
+    document.getElementById('vaultBody').innerHTML = filtered.reverse().map(v => `
         <tr>
-            <td>${v.date}</td>
-            <td>${v.name}</td>
-            <td>${v.sup}</td>
-            <td>${v.count}</td>
-            <td><button class="btn btn-primary">Baixar</button></td>
+            <td>${v.date}</td><td><b>${v.name}</b></td><td>${v.sup}</td><td>${v.count}</td>
+            <td><button class="btn btn-primary" onclick="alert('Recuperando arquivo...')">Baixar</button></td>
         </tr>
     `).join('');
 }
 
-// INICIALIZAR
+// INICIALIZAÇÃO
 window.onload = () => {
-    updateSelects();
+    updateCategoryFilters();
     renderRecent();
+    if(db_master.length > 0) document.getElementById('masterStatus').innerText = "✅ Banco Master: " + db_master.length + " Itens Carregados";
 };
