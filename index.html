@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Garantias | Sistema de Gestão Inteligente</title>
+    <title>Garantias | Gestão de Triagem</title>
     
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script>
@@ -16,7 +16,6 @@
             --navy-dark: #0f172a;
             --navy-light: #1e293b;
             --primary: #2563eb;
-            --primary-hover: #1d4ed8;
             --success: #16a34a;
             --danger: #dc2626;
             --bg: #f8fafc;
@@ -28,80 +27,57 @@
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Inter', sans-serif; }
         body { background: var(--bg); color: var(--navy-light); display: flex; height: 100vh; overflow: hidden; }
 
-        /* SIDEBAR LATERAL ESQUERDA */
-        aside {
-            width: var(--sidebar-width);
-            background: var(--navy-dark);
-            color: white;
-            display: flex;
-            flex-direction: column;
-            flex-shrink: 0;
-        }
-        .sidebar-header { padding: 2rem; text-align: center; border-bottom: 1px solid #334155; }
-        .sidebar-header h1 { font-size: 1.2rem; letter-spacing: 4px; font-weight: 800; }
+        /* SIDEBAR */
+        aside { width: var(--sidebar-width); background: var(--navy-dark); color: white; display: flex; flex-direction: column; flex-shrink: 0; }
+        .sidebar-header { padding: 2.5rem 1.5rem; text-align: center; border-bottom: 1px solid #334155; }
+        .sidebar-header h1 { font-size: 1.2rem; letter-spacing: 4px; font-weight: 800; color: #fff; }
         
         nav { padding: 1.5rem 0.8rem; flex-grow: 1; }
         .nav-btn {
-            width: 100%;
-            padding: 1rem;
-            margin-bottom: 0.5rem;
-            border: none;
-            background: transparent;
-            color: #94a3b8;
-            cursor: pointer;
-            border-radius: 8px;
-            font-weight: 600;
-            text-align: left;
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            transition: 0.3s;
+            width: 100%; padding: 1.2rem; margin-bottom: 0.5rem; border: none; background: transparent;
+            color: #94a3b8; cursor: pointer; border-radius: 12px; font-weight: 600; text-align: left;
+            display: flex; align-items: center; gap: 12px; transition: 0.3s;
         }
         .nav-btn:hover { background: #1e293b; color: white; }
-        .nav-btn.active { background: var(--primary); color: white; }
+        .nav-btn.active { background: var(--primary); color: white; box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3); }
 
-        /* ÁREA PRINCIPAL */
-        main { flex-grow: 1; overflow-y: auto; padding: 2.5rem; }
+        /* MAIN */
+        main { flex-grow: 1; overflow-y: auto; padding: 2rem; }
         .tab-content { display: none; animation: fadeIn 0.3s ease; }
         .tab-content.active { display: block; }
-        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
 
-        .card {
-            background: white;
-            border-radius: 12px;
-            padding: 2rem;
-            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
-            margin-bottom: 2rem;
-            border: 1px solid var(--border);
-        }
-        h2 { margin-bottom: 1.5rem; font-weight: 800; color: var(--navy-dark); }
+        .card { background: white; border-radius: 16px; padding: 2rem; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); margin-bottom: 2rem; border: 1px solid var(--border); }
+        h2 { margin-bottom: 1.5rem; font-weight: 800; color: var(--navy-dark); display: flex; align-items: center; gap: 10px; }
 
-        /* GRIDS E FORMS */
-        .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1.5rem; margin-bottom: 1.5rem; }
-        .form-group { display: flex; flex-direction: column; gap: 5px; }
+        /* FORMS */
+        .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1.5rem; margin-bottom: 1.5rem; }
+        .form-group { display: flex; flex-direction: column; gap: 6px; }
         label { font-size: 0.75rem; font-weight: 700; color: #64748b; text-transform: uppercase; }
-        input, select { padding: 0.8rem; border-radius: 8px; border: 1px solid var(--border); font-size: 0.9rem; }
-        
-        .btn { padding: 0.8rem 1.5rem; border-radius: 8px; border: none; font-weight: 700; cursor: pointer; transition: 0.2s; }
+        input, select { padding: 0.8rem; border-radius: 10px; border: 1px solid var(--border); font-size: 0.9rem; outline: none; transition: 0.2s; }
+        input:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1); }
+
+        .btn { padding: 0.8rem 1.5rem; border-radius: 10px; border: none; font-weight: 700; cursor: pointer; transition: 0.2s; text-transform: uppercase; font-size: 0.8rem; }
         .btn-primary { background: var(--primary); color: white; }
         .btn-success { background: var(--success); color: white; }
         .btn-danger { background: var(--danger); color: white; }
 
-        /* TABELAS */
-        .table-wrap { width: 100%; overflow-x: auto; border-radius: 8px; border: 1px solid var(--border); }
-        table { width: 100%; border-collapse: collapse; background: white; }
+        /* TABLES */
+        .table-wrap { width: 100%; overflow-x: auto; border-radius: 12px; border: 1px solid var(--border); }
+        table { width: 100%; border-collapse: collapse; background: white; min-width: 800px; }
         th { background: #f8fafc; padding: 1rem; text-align: left; font-size: 0.7rem; color: #64748b; text-transform: uppercase; border-bottom: 2px solid var(--border); }
-        td { padding: 0.8rem 1rem; border-bottom: 1px solid #f1f5f9; font-size: 0.85rem; }
+        td { padding: 1rem; border-bottom: 1px solid #f1f5f9; font-size: 0.85rem; }
+        tr:hover { background: #f8fafc; }
 
-        .badge { padding: 4px 8px; border-radius: 4px; font-size: 10px; font-weight: 800; }
+        .badge { padding: 4px 10px; border-radius: 6px; font-size: 11px; font-weight: 800; }
         .badge-garantia { background: #dcfce7; color: #15803d; }
-        .badge-descarte { background: #fee2e2; color: #991b1b; }
+        .badge-descarte { background: #fee2e2; color: #b91c1c; }
 
-        /* DASHBOARD */
-        .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 2rem; }
-        .stat-item { background: white; padding: 1.5rem; border-radius: 12px; border-bottom: 4px solid var(--primary); }
-        .stat-item h4 { font-size: 0.7rem; color: #64748b; }
-        .stat-item p { font-size: 1.8rem; font-weight: 800; }
+        /* DASHBOARD STATS */
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1.5rem; margin-bottom: 2rem; }
+        .stat-card { background: white; padding: 1.5rem; border-radius: 16px; border-left: 5px solid var(--primary); box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+        .stat-card h4 { font-size: 0.75rem; color: #64748b; margin-bottom: 5px; }
+        .stat-card p { font-size: 1.8rem; font-weight: 800; color: var(--navy-dark); }
     </style>
 </head>
 <body>
@@ -118,43 +94,43 @@
 </aside>
 
 <main>
-    <div id="triagem" class="tab-content active">
+    <section id="triagem" class="tab-content active">
         <div class="card">
             <h2>🔍 Registro de Triagem</h2>
-            <div style="background: #f1f5f9; padding: 1.5rem; border-radius: 10px; border: 2px dashed #cbd5e1; text-align: center; margin-bottom: 2rem;" onclick="document.getElementById('csvMaster').click()">
-                <p id="masterStatus">Arraste ou clique para carregar Banco Master (CSV)</p>
-                <input type="file" id="csvMaster" hidden onchange="importMaster(this)">
+            <div style="background: #f1f5f9; padding: 2rem; border-radius: 12px; border: 2px dashed #cbd5e1; text-align: center; margin-bottom: 2rem; cursor: pointer;" onclick="document.getElementById('csvMaster').click()">
+                <p id="masterStatus" style="font-weight: 600; color: #475569;">Clique para importar o Banco Master (id;categoria;sub;produto)</p>
+                <input type="file" id="csvMaster" accept=".csv" hidden onchange="importMaster(this)">
             </div>
             
             <div class="form-grid">
-                <div class="form-group">
+                <div class="form-group" style="grid-column: span 2;">
                     <label>ID do Produto (SKU)</label>
-                    <input type="text" id="inpId" placeholder="Ex: 10005" oninput="previewProd()">
-                    <div id="prevInfo" style="margin-top:8px; font-size:0.8rem; color:var(--primary); font-weight:700;"></div>
+                    <input type="text" id="inpId" placeholder="Digite o SKU para busca em tempo real..." oninput="previewProd()">
+                    <div id="prevInfo" style="margin-top: 10px; font-size: 0.85rem; min-height: 20px;"></div>
                 </div>
                 <div class="form-group">
                     <label>Código de Barras</label>
-                    <input type="text" id="inpBar" placeholder="Bipe aqui">
-                </div>
-                <div class="form-group">
-                    <label>Fornecedor</label>
-                    <select id="inpSup" onchange="previewProd()">
-                        <option value="QUARTT">QUARTT</option>
-                        <option value="GOLD">GOLD</option>
-                        <option value="AG">AG</option>
-                        <option value="CNN">CNN</option>
-                        <option value="IMPORTADA">IMPORTADA</option>
-                    </select>
+                    <input type="text" id="inpBar" placeholder="Bipe o código único">
                 </div>
             </div>
 
             <div class="form-grid">
                 <div class="form-group">
-                    <label>Data da Venda/Registro</label>
+                    <label>Fornecedor</label>
+                    <select id="inpSup" onchange="previewProd()">
+                        <option value="QUARTT">QUARTT</option>
+                        <option value="CNN">CNN</option>
+                        <option value="GOLD">GOLD</option>
+                        <option value="AG">AG</option>
+                        <option value="IMPORTADA">IMPORTADA</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Data da Venda</label>
                     <input type="date" id="inpDate">
                 </div>
                 <div class="form-group">
-                    <label>Motivo da Análise</label>
+                    <label>Análise do Técnico</label>
                     <select id="inpReason">
                         <option value="Touch intermitente">Touch intermitente (Garantia)</option>
                         <option value="Baixa amperagem">Baixa amperagem (Garantia)</option>
@@ -163,14 +139,12 @@
                         <option value="Flex Rasgado">Flex Rasgado (Descarte)</option>
                     </select>
                 </div>
-                <div class="form-group" style="justify-content: flex-end;">
-                    <button class="btn btn-primary" onclick="addItem()">Registrar Produto</button>
-                </div>
             </div>
+            <button class="btn btn-primary" style="width: 100%; height: 50px;" onclick="addItem()">Registrar no Lote</button>
         </div>
 
         <div class="card">
-            <h3>Últimos 10 Registros</h3>
+            <h3>Prévid dos Últimos 10 Itens</h3>
             <div class="table-wrap">
                 <table>
                     <thead>
@@ -180,100 +154,101 @@
                 </table>
             </div>
         </div>
-    </div>
+    </section>
 
-    <div id="dashboard" class="tab-content">
-        <div class="stats">
-            <div class="stat-item"><h4>Total Registros</h4><p id="dashTotal">0</p></div>
-            <div class="stat-item" style="border-color: var(--success)"><h4>Garantias</h4><p id="dashGar">0</p></div>
-            <div class="stat-item" style="border-color: var(--danger)"><h4>Descartes</h4><p id="dashDes">0</p></div>
-            <div class="stat-item"><h4>Valor Recuperado</h4><p id="dashVal">R$ 0,00</p></div>
+    <section id="dashboard" class="tab-content">
+        <div class="stats-grid">
+            <div class="stat-card"><h4>Total Triagem</h4><p id="dashTotal">0</p></div>
+            <div class="stat-card" style="border-left-color: var(--success)"><h4>Garantias</h4><p id="dashGar">0</p></div>
+            <div class="stat-card" style="border-left-color: var(--danger)"><h4>Descartes</h4><p id="dashDes">0</p></div>
+            <div class="stat-card"><h4>Recuperação Est.</h4><p id="dashVal">R$ 0,00</p></div>
         </div>
         <div class="card">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
-                <h3>Performance do Período</h3>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+                <h3>Análise de Performance</h3>
                 <div style="display: flex; gap: 10px;">
                     <input type="date" id="dashStart">
                     <input type="date" id="dashEnd">
-                    <button class="btn btn-primary" onclick="renderDashboard()">Filtrar</button>
+                    <button class="btn btn-primary" onclick="renderDashboard()">Filtrar Período</button>
                 </div>
             </div>
-            <canvas id="chartGarantias" style="max-height: 300px;"></canvas>
+            <canvas id="mainChart" style="max-height: 350px;"></canvas>
         </div>
-    </div>
+    </section>
 
-    <div id="precos" class="tab-content">
+    <section id="precos" class="tab-content">
         <div class="card">
-            <h2>💰 Gestão de Preços</h2>
-            <div style="display: flex; gap: 10px; margin-bottom: 1.5rem; flex-wrap: wrap;">
+            <h2>💰 Gestão de Preços Multifornedecor</h2>
+            <div style="display: flex; gap: 10px; margin-bottom: 2rem; flex-wrap: wrap;">
                 <button class="btn btn-primary" onclick="triggerPrice('QUARTT')">Importar QUARTT</button>
+                <button class="btn btn-primary" onclick="triggerPrice('CNN')">Importar CNN</button>
                 <button class="btn btn-primary" onclick="triggerPrice('GOLD')">Importar GOLD</button>
                 <button class="btn btn-primary" onclick="triggerPrice('AG')">Importar AG</button>
-                <button class="btn btn-primary" onclick="triggerPrice('CNN')">Importar CNN</button>
                 <button class="btn btn-primary" onclick="triggerPrice('IMPORTADA')">Importar IMPORTADA</button>
-                <input type="file" id="priceInp" hidden onchange="processPrice(this)">
+                <input type="file" id="priceInp" hidden onchange="processPriceCsv(this)">
             </div>
             <div class="form-grid">
-                <input type="text" id="searchPrice" placeholder="🔍 Buscar por SKU ou Nome..." oninput="renderPrice()">
-                <select id="filterCatPrice" onchange="renderPrice()">
-                    <option value="">Todas Categorias</option>
-                </select>
+                <input type="text" id="searchPrice" placeholder="🔍 Buscar por SKU ou Produto..." oninput="renderPriceTable()">
+                <select id="filterCatPrice" onchange="renderPriceTable()"><option value="">Todas as Categorias</option></select>
             </div>
-            <div class="table-wrap" style="max-height: 600px;">
+            <div class="table-wrap" style="max-height: 500px;">
                 <table>
                     <thead>
-                        <tr><th>SKU</th><th>Produto</th><th>Categoria</th><th>Valor Atual</th><th>Novo Valor</th><th>Ação</th></tr>
+                        <tr>
+                            <th>SKU</th><th>Produto</th><th>Categoria</th><th>Média</th>
+                            <th>Quartt</th><th>CNN</th><th>GOLD</th><th>AG</th><th>Imp.</th><th>Ação</th>
+                        </tr>
                     </thead>
                     <tbody id="priceBody"></tbody>
                 </table>
             </div>
         </div>
-    </div>
+    </section>
 
-    <div id="lote" class="tab-content">
+    <section id="lote" class="tab-content">
         <div class="card">
-            <h2>📋 Itens em Lote</h2>
-            <div class="form-grid">
-                <input type="text" id="searchLote" placeholder="🔍 Pesquisar barcode ou produto..." oninput="renderLote()">
-                <select id="filterCatLote" onchange="renderLote()">
-                    <option value="">Todas Categorias</option>
-                </select>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+                <h2>📋 Itens em Aberto</h2>
+                <div style="display: flex; gap: 10px;">
+                    <button class="btn btn-success" onclick="exportExcel('QUARTT')">Exportar QUARTT</button>
+                    <button class="btn btn-success" onclick="exportExcel('CNN')">Exportar CNN</button>
+                    <button class="btn btn-success" onclick="exportExcel('GOLD')">Exportar GOLD</button>
+                    <button class="btn btn-success" onclick="exportExcel('AG')">Exportar AG</button>
+                </div>
             </div>
-            <div style="display: flex; gap: 10px; margin-bottom: 1rem;">
-                <button class="btn btn-success" onclick="exportExcel('QUARTT')">Exportar QUARTT</button>
-                <button class="btn btn-success" onclick="exportExcel('GOLD')">Exportar GOLD</button>
-                <button class="btn btn-success" onclick="exportExcel('AG')">Exportar AG</button>
-                <button class="btn btn-success" onclick="exportExcel('CNN')">Exportar CNN</button>
+            <div class="form-grid">
+                <input type="text" id="searchLote" placeholder="🔍 Buscar no lote..." oninput="renderLoteTable()">
+                <select id="filterCatLote" onchange="renderLoteTable()"><option value="">Categorias</option></select>
             </div>
             <div class="table-wrap">
                 <table>
                     <thead>
-                        <tr><th>Forn.</th><th>Categoria</th><th>Produto</th><th>Barcode</th><th>Preço</th><th>Status</th><th>Ações</th></tr>
+                        <tr><th>Forn.</th><th>Categoria</th><th>Produto</th><th>Barcode (Editável)</th><th>Status</th><th>Ação</th></tr>
                     </thead>
                     <tbody id="loteBody"></tbody>
                 </table>
             </div>
         </div>
-    </div>
+    </section>
 
-    <div id="cofre" class="tab-content">
+    <section id="cofre" class="tab-content">
         <div class="card">
-            <h2>🔒 Cofre de Arquivos</h2>
+            <h2>🔒 Cofre de Exportações</h2>
             <div class="form-grid">
-                <select id="vaultForn" onchange="renderVault()"><option value="">Todos Fornecedores</option><option value="QUARTT">QUARTT</option></select>
-                <select id="vaultStatus" onchange="renderVault()"><option value="">Todos Status</option><option value="Garantia">Garantia</option><option value="Descarte">Descarte</option></select>
+                <select id="vaultForn" onchange="renderVault()"><option value="">Fornecedor</option><option value="QUARTT">QUARTT</option><option value="CNN">CNN</option><option value="GOLD">GOLD</option><option value="AG">AG</option></select>
+                <select id="vaultStatus" onchange="renderVault()"><option value="">Status</option><option value="Garantia">Garantia</option><option value="Descarte">Descarte</option></select>
                 <input type="date" id="vaultDate" onchange="renderVault()">
             </div>
             <div class="table-wrap">
                 <table>
                     <thead>
-                        <tr><th>Data Gerado</th><th>Arquivo</th><th>Fornecedor</th><th>Qtd</th><th>Ação</th></tr>
+                        <tr><th>Data Export.</th><th>Arquivo</th><th>Fornecedor</th><th>Itens</th><th>Ação</th></tr>
                     </thead>
                     <tbody id="vaultBody"></tbody>
                 </table>
             </div>
         </div>
-    </div>
+    </section>
 </main>
 
 <script src="app.js"></script>
